@@ -1,0 +1,62 @@
+# ─── Dependencies ───────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ─── Environment Variables (NEVER push) ──────────────────────────────────────
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+**/.env
+**/.env.*
+
+# ─── Build Outputs ───────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+**/dist/
+**/build/
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+**/logs/
+
+# ─── Uploads ────────────────────────────────────────────────────────────────
+uploads/
+**/uploads/
+
+# ─── OS Generated ────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─── IDE ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Package lock (keep package-lock.json) ───────────────────────────────────
+# yarn.lock
+# pnpm-lock.yaml
+
+# ─── Vite Cache ──────────────────────────────────────────────────────────────
+.vite/
+**/.vite/
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+*.pem
+coverage/
+.nyc_output/
