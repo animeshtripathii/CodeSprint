@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import { FiArrowLeft, FiFileText, FiCheckCircle } from 'react-icons/fi';
+import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import toast from 'react-hot-toast';
 
 export default function JudgeSubmissionsPage() {
@@ -30,78 +31,79 @@ export default function JudgeSubmissionsPage() {
     fetchData();
   }, [hackathonId]);
 
-  if (loading) {
-    return (
-      <div style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
-        <Navbar />
-        <div style={{ paddingTop: 100, textAlign: 'center' }}>
-          <div className="skeleton" style={{ height: 250, maxWidth: '1000px', margin: '0 auto' }} />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
-      <Navbar />
+    <div style={{ position: 'relative', background: '#050507', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      
+      {/* ── Canvas Dotted Glow Background ── */}
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
-      <div className="container" style={{ paddingTop: 96, paddingBottom: 64 }}>
-        <div style={{ marginBottom: 32 }}>
-          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem', color: 'var(--text-muted-dark)' }}>
-            <FiArrowLeft /> Back to Dashboard
+      <Navbar dark={true} />
+
+      <div className="container" style={{ position: 'relative', zIndex: 10, paddingTop: 96, paddingBottom: 64, paddingLeft: 28, paddingRight: 28 }}>
+        
+        {/* Top Header */}
+        <div style={{ marginBottom: 36 }}>
+          <Link to="/dashboard" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', marginBottom: 12 }}>
+            <FiArrowLeft /> Back to Judge Console
           </Link>
-          <h1 className="text-h2 serif" style={{ marginTop: 12 }}>Review Submissions</h1>
-          <p className="text-sm text-muted">{hackathon?.title}</p>
+          <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2.5rem', margin: '0 0 6px 0', lineHeight: 1 }}>
+            Review Submissions
+          </h1>
+          <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+            {hackathon?.title || 'Assigned Hackathon Submissions'}
+          </p>
         </div>
 
-        <div className="grid-3" style={{ gap: 20 }}>
-          {submissions.length === 0 ? (
-            <div className="empty-state" style={{ gridColumn: 'span 3' }}>
-              <div className="empty-icon">📦</div>
-              <div className="empty-title">No submissions yet</div>
-              <div className="empty-subtitle">Teams have not submitted any projects for this hackathon.</div>
-            </div>
-          ) : (
-            submissions.map(s => {
-              // check if current judge user has reviewed
-              const hasReviewed = false; // logic would tie to judge user review list
-
-              return (
-                <div key={s._id} className="card" style={{ display: 'flex', flexDirection: 'column', justify: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-muted-dark)' }}>Team: {s.team?.name}</strong>
-                      {hasReviewed ? (
-                        <span className="chip chip-green" style={{ fontSize: '0.65rem' }}>
-                          <FiCheckCircle style={{ marginRight: 4 }} /> Reviewed
-                        </span>
-                      ) : (
-                        <span className="chip chip-gold" style={{ fontSize: '0.65rem' }}>
-                          Pending Review
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="serif" style={{ fontSize: '1.25rem', marginBottom: 8 }}>{s.projectName}</h3>
-                    <p style={{ fontSize: '0.82rem', color: 'var(--text-muted-dark)', marginBottom: 16, lineClamp: 3, overflow: 'hidden' }}>
-                      {s.problemStatement}
-                    </p>
-
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 20 }}>
-                      {s.techStack?.map(t => (
-                        <span key={t} className="chip chip-gray" style={{ fontSize: '0.65rem' }}>{t}</span>
-                      ))}
-                    </div>
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>⌛</div>
+            <div>Loading submissions...</div>
+          </div>
+        ) : submissions.length === 0 ? (
+          <div className="liquid-glass text-center" style={{ borderRadius: 24, padding: 48 }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>📦</div>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: 6 }}>No Submissions Yet</div>
+            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)' }}>Teams have not submitted any project entries for this hackathon.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+            {submissions.map(s => (
+              <div key={s._id} className="liquid-glass" style={{ borderRadius: 22, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>Team: {s.team?.name || '—'}</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: s.reviewed ? 'rgba(52,211,153,0.14)' : 'rgba(251,191,36,0.14)', color: s.reviewed ? '#34d399' : '#fbbf24', border: s.reviewed ? '1px solid rgba(52,211,153,0.28)' : '1px solid rgba(251,191,36,0.28)' }}>
+                      {s.reviewed ? '✓ Reviewed' : 'Pending Review'}
+                    </span>
                   </div>
 
-                  <Link to={`/judge/submissions/${s._id}/review`} className="btn btn-primary w-full" style={{ justifyContent: 'center' }}>
-                    <FiFileText /> {hasReviewed ? 'Edit Review' : 'Start Review'}
-                  </Link>
+                  <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.3rem', margin: '0 0 8px 0', color: '#fff' }}>{s.projectName}</h3>
+                  <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 16 }}>
+                    {s.problemStatement}
+                  </p>
+
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 20 }}>
+                    {(s.techStack || []).map(t => (
+                      <span key={t} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 8 }}>{t}</span>
+                    ))}
+                  </div>
                 </div>
-              );
-            })
-          )}
-        </div>
+
+                <Link
+                  to={`/judge/submissions/${s._id}/review`}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none',
+                    color: '#060709', fontWeight: 700, fontSize: '0.82rem', textDecoration: 'none', textAlign: 'center',
+                    boxShadow: '0 4px 14px rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                  }}
+                >
+                  <FiFileText /> {s.reviewed ? 'Edit Review' : 'Start Review'}
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );

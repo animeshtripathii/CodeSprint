@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { FiUsers, FiCheck, FiArrowRight, FiLock, FiAlertCircle } from 'react-icons/fi';
+import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -52,7 +53,6 @@ export default function JoinTeamPage() {
   const handleSearchCode = (e) => {
     e.preventDefault();
     if (!inputCode.trim()) return toast.error('Please enter a team code');
-    // If team code formatted as TEAM-XXXXXX, extract or search
     toast.success(`Searching for team ${inputCode}...`);
   };
 
@@ -64,7 +64,6 @@ export default function JoinTeamPage() {
 
     setJoining(true);
     try {
-      // Add member call
       if (teamInfo?._id) {
         await axios.post(`/api/teams/${teamInfo._id}/members`, {
           email: user.email,
@@ -74,104 +73,79 @@ export default function JoinTeamPage() {
       navigate(`/teams/${teamInfo?._id || teamIdParam}/workspace`);
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to join team. You may already be in a team for this hackathon.');
+      toast.error(err.response?.data?.message || 'Failed to join team.');
     } finally {
       setJoining(false);
     }
   };
 
   return (
-    <div className="wekraft-bg min-h-screen">
+    <div style={{ position: 'relative', background: '#050507', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      
+      {/* ── Canvas Dotted Glow Background ── */}
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
+
       <Navbar dark={true} />
 
-      <div className="container section flex flex-col items-center justify-center min-h-screen" style={{ paddingTop: 100 }}>
-        <div className="glass-panel w-full max-w-lg p-8 relative" style={{ border: '1px solid rgba(27,104,255,0.3)', boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}>
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-3" style={{ background: 'rgba(27,104,255,0.15)', border: '1px solid rgba(27,104,255,0.3)', color: '#60a5fa' }}>
-              <FiQrCode size={28} />
+      <div className="container" style={{ position: 'relative', zIndex: 10, paddingTop: 120, paddingBottom: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="liquid-glass" style={{ width: '100%', maxWidth: 520, borderRadius: 24, padding: 36 }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', marginBottom: 12 }}>
+              <QrIcon size={28} />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2" style={{ color: '#fff' }}>Join Hackathon Team</h2>
-            <p className="text-xs text-slate-400">Enter a team invite code or scan a team QR pass to collaborate.</p>
+            <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2rem', margin: '0 0 6px 0', color: '#fff' }}>
+              Join Hackathon Team
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              Enter a team invite code or scan a team pass to join workspace.
+            </p>
           </div>
 
           {!teamInfo ? (
-            <form onSubmit={handleSearchCode} className="flex flex-col gap-4">
+            <form onSubmit={handleSearchCode} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
-                <label className="input-label-dark block text-xs font-medium mb-1 text-slate-300">Team Code</label>
-                <input 
-                  type="text" 
-                  className="input input-dark w-full text-center text-lg font-mono tracking-widest uppercase"
-                  placeholder="e.g. TEAM-7X9A21"
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Team Invite Code</label>
+                <input
+                  type="text"
+                  placeholder="e.g. TEAM-8X92K"
                   value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value)}
-                  style={{ background: 'rgba(10,14,26,0.8)', border: '1px solid rgba(255,255,255,0.15)', color: '#38bdf8' }}
+                  onChange={e => setInputCode(e.target.value)}
+                  style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
                 />
               </div>
 
               {errorMsg && (
-                <div className="flex items-center gap-2 p-3 rounded-lg text-xs" style={{ background: 'rgba(255,77,109,0.12)', border: '1px solid rgba(255,77,109,0.3)', color: '#ff4d6d' }}>
+                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <FiAlertCircle /> {errorMsg}
                 </div>
               )}
 
-              <button type="submit" className="btn-blue-glow w-full justify-center">
-                Search Team & Pass <FiArrowRight />
+              <button
+                type="submit"
+                style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                Find Team Space <FiArrowRight />
               </button>
             </form>
           ) : (
-            <div className="flex flex-col gap-5">
-              <div className="qr-ticket-box text-left">
-                <div className="flex items-center justify-between mb-3 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-                  <span className="text-xs text-blue-400 font-semibold uppercase tracking-wider">Verified Team Pass</span>
-                  <span className="code-badge-lg" style={{ fontSize: '0.9rem', padding: '2px 8px' }}>
-                    {codeParam || `TEAM-${teamInfo._id?.slice(-6).toUpperCase()}`}
-                  </span>
-                </div>
-                
-                <h3 className="text-xl font-bold text-white mb-1" style={{ color: '#fff' }}>{teamInfo.name}</h3>
-                <p className="text-xs text-slate-400 mb-3">Hackathon: <span className="text-slate-200">{teamInfo.hackathon?.title || 'Open Hackathon'}</span></p>
-
-                <div className="flex items-center gap-4 text-xs text-slate-300 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div>
-                    <span className="text-slate-500 block">Leader</span>
-                    <span className="font-semibold text-white">{teamInfo.leader?.name || 'Team Leader'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500 block">Members</span>
-                    <span className="font-semibold text-white">{teamInfo.members?.length || 1} Registered</span>
-                  </div>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <div style={{ padding: 20, borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Team Found</div>
+                <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.6rem', color: '#fff' }}>{teamInfo.name}</div>
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{teamInfo.members?.length || 1} current members</div>
               </div>
 
-              {user ? (
-                <button 
-                  onClick={handleJoinTeam} 
-                  disabled={joining}
-                  className="btn-blue-glow w-full justify-center text-base py-3"
-                >
-                  {joining ? 'Joining Team...' : 'Accept Invite & Join Team Now'} <FiCheck />
-                </button>
-              ) : (
-                <div className="text-center p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                  <p className="text-xs text-slate-300 mb-3">You need an account to join this team.</p>
-                  <div className="flex items-center gap-3">
-                    <Link 
-                      to={`/login?redirect=/join-team?code=${inputCode}&teamId=${teamIdParam}`}
-                      className="btn-glass btn-sm w-1/2 justify-center"
-                    >
-                      Log In
-                    </Link>
-                    <Link 
-                      to={`/register?redirect=/join-team?code=${inputCode}&teamId=${teamIdParam}`}
-                      className="btn-blue-glow btn-sm w-1/2 justify-center"
-                    >
-                      Sign Up →
-                    </Link>
-                  </div>
-                </div>
-              )}
+              <button
+                onClick={handleJoinTeam}
+                disabled={joining}
+                style={{ width: '100%', padding: '12px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                {joining ? 'Joining Team...' : '🚀 Confirm & Join Team'}
+              </button>
             </div>
           )}
+
         </div>
       </div>
     </div>

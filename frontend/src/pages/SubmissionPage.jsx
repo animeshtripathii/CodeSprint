@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FiArrowLeft, FiUploadCloud, FiZap, FiCheck } from 'react-icons/fi';
+import { FiArrowLeft, FiUploadCloud, FiZap, FiCheck, FiSparkles } from 'react-icons/fi';
+import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import toast from 'react-hot-toast';
 
 export default function SubmissionPage() {
@@ -25,7 +26,7 @@ export default function SubmissionPage() {
     githubRepo: '',
     liveDemo: '',
     techStack: '',
-    presentationFile: '', // DataURI in mock
+    presentationFile: '',
   });
 
   useEffect(() => {
@@ -89,166 +90,207 @@ export default function SubmissionPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
-        <Navbar />
-        <div style={{ paddingTop: 100, textAlign: 'center' }}>
-          <div className="skeleton" style={{ height: 300, maxWidth: '800px', margin: '0 auto' }} />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ background: 'var(--bg-cream)', minHeight: '100vh' }}>
-      <Navbar />
+    <div style={{ position: 'relative', background: '#050507', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      
+      {/* ── Canvas Dotted Glow Background ── */}
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
-      <div className="container" style={{ paddingTop: 96, paddingBottom: 64, maxWidth: '800px' }}>
+      <Navbar dark={true} />
+
+      <div className="container" style={{ position: 'relative', zIndex: 10, paddingTop: 96, paddingBottom: 64, maxWidth: 880 }}>
+        
+        {/* Top Header */}
         <div style={{ marginBottom: 32 }}>
-          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.875rem', color: 'var(--text-muted-dark)' }}>
-            <FiArrowLeft /> Back to Dashboard
+          <Link to={`/hackathons/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', marginBottom: 12 }}>
+            <FiArrowLeft /> Back to Hackathon
           </Link>
-          <h1 className="text-h2 serif" style={{ marginTop: 12 }}>Submit Project</h1>
-          <p className="text-sm text-muted">{hackathon.title}</p>
+          <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2.5rem', margin: '0 0 6px 0', lineHeight: 1 }}>
+            Submit Project Entry
+          </h1>
+          <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+            {hackathon?.title || 'Finalize your hackathon demo, repository URL & presentation'}
+          </p>
         </div>
 
-        {/* Form Progress Stepper */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 32, position: 'relative' }}>
-          {[
-            { num: 1, label: 'Info' },
-            { num: 2, label: 'Links' },
-            { num: 3, label: 'Slides' },
-            { num: 4, label: 'Confirm' },
-          ].map(s => (
-            <div key={s.num} style={{ textAlign: 'center', zIndex: 1, flex: 1 }}>
-              <div style={{
-                width: 32, height: 32, borderRadius: '50%', margin: '0 auto 8px',
-                background: step >= s.num ? 'var(--accent-purple)' : '#fff',
-                color: step >= s.num ? '#fff' : 'var(--text-muted-dark)',
-                border: '1px solid var(--border-light)',
-                display: 'flex', alignItems: 'center', justify: 'center',
-                fontWeight: 600, fontSize: '0.85rem'
-              }}>
-                {step > s.num ? <FiCheck /> : s.num}
-              </div>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted-dark)', fontWeight: 500 }}>{s.label}</span>
-            </div>
-          ))}
-        </div>
+        {/* Form Container */}
+        <div className="liquid-glass" style={{ borderRadius: 24, padding: 36 }}>
+          
+          {/* Step Indicator */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 18 }}>
+            {[
+              { num: 1, title: 'Project Details' },
+              { num: 2, title: 'Code & Demo Links' },
+              { num: 3, title: 'AI Assistant & Submit' }
+            ].map(s => (
+              <button
+                key={s.num}
+                onClick={() => setStep(s.num)}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 12, border: 'none', textAlign: 'left',
+                  background: step === s.num ? '#ffffff' : 'rgba(255,255,255,0.04)',
+                  color: step === s.num ? '#060709' : 'rgba(255,255,255,0.45)',
+                  cursor: 'pointer', transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Step {s.num}</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, marginTop: 2 }}>{s.title}</div>
+              </button>
+            ))}
+          </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* STEP 1: INFO */}
-          {step === 1 && (
-            <div className="card page-enter">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Project Details</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={handleSubmit}>
+            {step === 1 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
-                  <label className="input-label">Project Name</label>
-                  <input className="input" name="projectName" value={form.projectName} onChange={handleChange} placeholder="e.g. HealthSphere" required />
-                </div>
-                <div>
-                  <label className="input-label">Problem Statement</label>
-                  <textarea className="input" name="problemStatement" value={form.problemStatement} onChange={handleChange} rows={3} placeholder="What problem does your project solve?" required />
-                </div>
-                <div>
-                  <label className="input-label">Our Solution</label>
-                  <textarea className="input" name="solution" value={form.solution} onChange={handleChange} rows={5} placeholder="Describe your product architecture, design, and features..." required />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: LINKS */}
-          {step === 2 && (
-            <div className="card page-enter">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Links & Stack</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <label className="input-label">GitHub Repository URL</label>
-                  <input className="input" name="githubRepo" value={form.githubRepo} onChange={handleChange} placeholder="https://github.com/..." required />
-                </div>
-                <div>
-                  <label className="input-label">Live Demo URL (optional)</label>
-                  <input className="input" name="liveDemo" value={form.liveDemo} onChange={handleChange} placeholder="https://..." />
-                </div>
-                <div>
-                  <label className="input-label">Tech Stack (comma-separated)</label>
-                  <input className="input" name="techStack" value={form.techStack} onChange={handleChange} placeholder="e.g. React, Node.js, Mongoose" required />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: SLIDES */}
-          {step === 3 && (
-            <div className="card page-enter">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Pitch & Presentation</h3>
-              <div style={{ border: '2px dashed var(--border-light)', borderRadius: 8, padding: 32, textAlign: 'center', background: '#fff', position: 'relative' }}>
-                <input type="file" accept=".pdf,.ppt,.pptx" onChange={handleFileUpload} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }} />
-                <FiUploadCloud size={32} style={{ color: 'var(--text-muted-dark)', marginBottom: 8 }} />
-                <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>Upload project pitch deck / slides</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted-dark)', marginTop: 4 }}>PDF, PPTX up to 10MB</div>
-                {form.presentationFile && (
-                  <div className="chip chip-green" style={{ marginTop: 12 }}>
-                    ✓ Document Loaded
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 4: CONFIRM */}
-          {step === 4 && (
-            <div className="card page-enter">
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 16 }}>Confirm Details</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>Project Name</div>
-                  <strong style={{ fontSize: '1rem' }}>{form.projectName}</strong>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>Solution Pitch</div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted-dark)' }}>{form.solution}</p>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted-dark)' }}>GitHub</div>
-                  <p style={{ fontSize: '0.85rem' }}>{form.githubRepo}</p>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Project Title</label>
+                  <input
+                    name="projectName"
+                    value={form.projectName}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g. HackForge AI Assistant"
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
                 </div>
 
-                <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                  <button type="button" className="btn btn-outline" onClick={handleGenerateAiSummary} disabled={isAiLoading}>
-                    <FiZap /> AI Validate Pitch Before Submit
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Problem Statement</label>
+                  <textarea
+                    name="problemStatement"
+                    value={form.problemStatement}
+                    onChange={handleChange}
+                    required
+                    rows={3}
+                    placeholder="Describe the challenge your team is tackling..."
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Solution & Architecture</label>
+                  <textarea
+                    name="solution"
+                    value={form.solution}
+                    onChange={handleChange}
+                    required
+                    rows={4}
+                    placeholder="Explain your approach, technology stack, and core features..."
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    style={{ padding: '12px 24px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)' }}
+                  >
+                    Next: Code Links →
                   </button>
                 </div>
-
-                {aiSummary && (
-                  <div style={{ background: 'rgba(0,0,0,0.02)', padding: 12, borderRadius: 8, border: '1px solid var(--border-light)', fontSize: '0.85rem' }}>
-                    <strong>✨ AI Improvement Tip:</strong> {aiSummary}
-                  </div>
-                )}
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Navigation buttons */}
-          <div style={{ display: 'flex', gap: 12, justify: 'flex-end', marginLeft: 'auto' }}>
-            {step > 1 && (
-              <button type="button" className="btn btn-outline" onClick={() => setStep(step - 1)}>
-                Back
-              </button>
+            {step === 2 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>GitHub Repository URL</label>
+                  <input
+                    name="githubRepo"
+                    value={form.githubRepo}
+                    onChange={handleChange}
+                    required
+                    placeholder="https://github.com/org/repo"
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Live Demo / Video Pitch URL</label>
+                  <input
+                    name="liveDemo"
+                    value={form.liveDemo}
+                    onChange={handleChange}
+                    placeholder="https://demo.app or https://youtube.com/watch?v=..."
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>Technologies Used (comma separated)</label>
+                  <input
+                    name="techStack"
+                    value={form.techStack}
+                    onChange={handleChange}
+                    placeholder="React, Node.js, Tailwind, OpenAI"
+                    style={{ width: '100%', padding: '12px 16px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    style={{ padding: '12px 24px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    style={{ padding: '12px 24px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.88rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)' }}
+                  >
+                    Next: AI Review & Submit →
+                  </button>
+                </div>
+              </div>
             )}
-            {step < 4 ? (
-              <button type="button" className="btn btn-primary" onClick={() => setStep(step + 1)}>
-                Next
-              </button>
-            ) : (
-              <button type="submit" className="btn btn-green btn-lg" disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Pitch'}
-              </button>
+
+            {step === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* AI Review Card */}
+                <div style={{ padding: 20, borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <FiSparkles color="#ffffff" /> AI Submission Feedback
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiSummary}
+                      disabled={isAiLoading}
+                      style={{ padding: '6px 14px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                    >
+                      {isAiLoading ? 'Analyzing...' : '⚡ Generate AI Feedback'}
+                    </button>
+                  </div>
+                  <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.55, margin: 0 }}>
+                    {aiSummary || 'Click "Generate AI Feedback" to receive automated improvements on your submission pitch and technical overview.'}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    style={{ padding: '12px 24px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontWeight: 600, fontSize: '0.88rem', cursor: 'pointer' }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    style={{ padding: '12px 32px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer', boxShadow: '0 4px 18px rgba(255,255,255,0.35)' }}
+                  >
+                    {submitting ? 'Submitting Entry...' : '🚀 Finalize & Submit Entry'}
+                  </button>
+                </div>
+              </div>
             )}
-          </div>
-        </form>
+          </form>
+
+        </div>
+
       </div>
     </div>
   );

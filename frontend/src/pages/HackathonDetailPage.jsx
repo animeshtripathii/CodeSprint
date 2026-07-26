@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FiCalendar, FiUsers, FiAward, FiMapPin, FiArrowRight, FiCheck, FiUserPlus, FiShield } from 'react-icons/fi';
+import { FiCalendar, FiUsers, FiAward, FiMapPin, FiArrowRight, FiCheck, FiUserPlus, FiShield, FiGlobe } from 'react-icons/fi';
+import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import toast from 'react-hot-toast';
 import TeamRegistrationModal from '../components/TeamRegistrationModal';
 
@@ -23,7 +24,7 @@ export default function HackathonDetailPage() {
 
   const [hackathon, setHackathon] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [registerStatus, setRegisterStatus] = useState(null); // 'none', 'pending', 'approved', 'rejected'
+  const [registerStatus, setRegisterStatus] = useState(null);
   const [myTeam, setMyTeam] = useState(null);
   const [showTeamModal, setShowTeamModal] = useState(false);
 
@@ -103,197 +104,201 @@ export default function HackathonDetailPage() {
     fetchData();
   }, [id, user]);
 
-  if (loading) {
-    return (
-      <div className="wekraft-bg min-h-screen">
-        <Navbar dark={true} />
-        <div style={{ paddingTop: 100, textAlign: 'center' }}>
-          <div className="skeleton" style={{ height: 400, maxWidth: '1200px', margin: '0 auto 40px', borderRadius: 16, background: 'rgba(255,255,255,0.05)' }} />
-        </div>
-      </div>
-    );
-  }
-
-  if (!hackathon) {
-    return (
-      <div className="wekraft-bg min-h-screen">
-        <Navbar dark={true} />
-        <div style={{ paddingTop: 120, textAlign: 'center' }} className="empty-state">
-          <div className="empty-icon">😢</div>
-          <div className="empty-title text-white">Hackathon not found</div>
-          <Link to="/hackathons" className="btn-blue-glow mt-4">Back to Hackathons</Link>
-        </div>
-      </div>
-    );
-  }
-
-  const isDeadlinePassed = new Date(hackathon.registrationDeadline) < new Date();
+  const handleRegisterSolo = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      await api.post('/registrations', { hackathon: id });
+      setRegisterStatus('pending');
+      toast.success('Registration request submitted!');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Registration failed');
+    }
+  };
 
   return (
-    <div className="wekraft-bg min-h-screen">
+    <div style={{ position: 'relative', background: '#050507', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
+      
+      {/* ── Canvas Dotted Glow Background ── */}
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
+
       <Navbar dark={true} />
 
-      <div style={{ paddingTop: 60 }}>
-        {/* Banner Hero */}
-        <div style={{
-          position: 'relative',
-          height: '380px',
-          background: hackathon.banner ? `url(${hackathon.banner}) no-repeat center/cover` : 'linear-gradient(135deg, #090a0f, #1b68ff22)',
-          display: 'flex',
-          alignItems: 'flex-end',
-          paddingBottom: '40px',
-          borderBottom: '1px solid rgba(255,255,255,0.08)'
-        }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #08090d 0%, rgba(8,9,13,0.4) 100%)' }} />
-
-          <div className="container" style={{ position: 'relative', zIndex: 1, color: '#fff' }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <span className={`chip status-${hackathon.status}`}>{hackathon.status}</span>
-              <span className="chip chip-dark">{hackathon.mode}</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-3 text-gradient-electric">{hackathon.title}</h1>
-            <p className="text-slate-300 text-lg" style={{ maxWidth: '640px' }}>{hackathon.theme}</p>
+      <div className="container" style={{ position: 'relative', zIndex: 10, paddingTop: 88, paddingBottom: 64, paddingLeft: 28, paddingRight: 28 }}>
+        
+        {loading ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>⌛</div>
+            <div>Loading hackathon details...</div>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Banner Header */}
+            <div className="liquid-glass" style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 28, position: 'relative' }}>
+              <div style={{
+                height: 240, position: 'relative',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                {hackathon.bannerUrl && (
+                  <img src={hackathon.bannerUrl} alt={hackathon.title} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, opacity: 0.8 }} />
+                )}
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(5,5,7,0.95) 100%)' }} />
 
-        {/* Content Section */}
-        <div className="container" style={{ padding: '48px 24px', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-          {/* Left panel: Info */}
-          <div style={{ flex: '1 1 600px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-            {/* About */}
-            <div className="glass-card p-6">
-              <h2 className="text-xl font-bold text-white mb-4">About Hackathon</h2>
-              <div style={{ whiteSpace: 'pre-wrap', color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.7 }}>
-                {hackathon.description}
-              </div>
-            </div>
-
-            {/* Judging Criteria */}
-            {hackathon.judgingCriteria && hackathon.judgingCriteria.length > 0 && (
-              <div className="glass-card p-6">
-                <h2 className="text-xl font-bold text-white mb-4">Judging Criteria</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {hackathon.judgingCriteria.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
-                      <div>
-                        <strong className="text-white font-semibold" style={{ fontSize: '0.95rem' }}>{c.criterion}</strong>
-                        <p className="text-xs text-slate-400 mt-1">{c.description}</p>
-                      </div>
-                      <div className="badge-glow" style={{ padding: '4px 10px', background: 'rgba(27,104,255,0.15)', border: '1px solid rgba(27,104,255,0.3)', borderRadius: 20, fontSize: '0.75rem', color: '#60a5fa', height: 'fit-content' }}>
-                        Max {c.maxScore} pts
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Quick Stats Grid */}
-            <div className="grid-3" style={{ gap: 16 }}>
-              <div className="glass-card p-5 text-center">
-                <FiCalendar size={22} style={{ color: '#818cf8', margin: '0 auto 8px' }} />
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Timeline</div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: 4, color: '#fff' }}>
-                  {new Date(hackathon.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} - {new Date(hackathon.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </div>
-              </div>
-
-              <div className="glass-card p-5 text-center">
-                <FiAward size={22} style={{ color: '#f59e0b', margin: '0 auto 8px' }} />
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Prize Pool</div>
-                <div style={{ fontWeight: 700, fontSize: '1.1rem', marginTop: 4, color: '#fbbf24' }}>
-                  {hackathon.prizePool || '$0'}
-                </div>
-              </div>
-
-              <div className="glass-card p-5 text-center">
-                <FiUsers size={22} style={{ color: '#34d399', margin: '0 auto 8px' }} />
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Team Limit</div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: 4, color: '#fff' }}>
-                  Max {hackathon.maxTeamSize || 4} members
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right panel: Registration details */}
-          <div style={{ flex: '1 1 300px', maxWidth: '380px' }}>
-            <div className="glass-panel p-6" style={{ position: 'sticky', top: '92px', border: '1px solid rgba(27,104,255,0.3)' }}>
-              <h3 className="text-xl font-bold text-white mb-2" style={{ color: '#fff' }}>Participate & Register</h3>
-              <p className="text-xs text-slate-400 mb-6">
-                Register as a Team Leader to generate a QR pass & team code, or join an existing team via invite code.
-              </p>
-
-              {user && myTeam ? (
-                <div className="flex flex-col gap-3">
-                  <div className="p-3 rounded-xl text-center" style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.3)', color: '#34d399' }}>
-                    <FiCheck className="inline-block mr-1" /> Registered in <strong>{myTeam.name}</strong>
-                  </div>
-                  <Link to={`/teams/${myTeam._id}/workspace`} className="btn-blue-glow w-full justify-center">
-                    Open Team Workspace <FiArrowRight />
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <button
-                    className="btn-blue-glow w-full justify-center text-sm"
-                    onClick={() => {
-                      if (!user) return navigate('/login');
-                      setShowTeamModal(true);
-                    }}
-                    disabled={isDeadlinePassed}
-                  >
-                    <FiShield /> Register Team (Team Leader)
-                  </button>
-
-                  <button
-                    className="btn-glass w-full justify-center text-sm"
-                    onClick={() => {
-                      if (!user) return navigate('/login');
-                      navigate(`/join-team?hackathonId=${id}`);
-                    }}
-                  >
-                    <FiUserPlus /> Join Team via QR / Code
-                  </button>
-
-                  {isDeadlinePassed && (
-                    <p className="text-xs text-red-400 text-center mt-2">
-                      The deadline to register has passed.
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Side metadata list */}
-              <div className="mt-6 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div className="flex justify-between text-xs text-slate-300">
-                  <span className="text-slate-400">Deadline:</span>
-                  <strong>{new Date(hackathon.registrationDeadline).toLocaleDateString()}</strong>
-                </div>
-                <div className="flex justify-between text-xs text-slate-300">
-                  <span className="text-slate-400">Judges:</span>
-                  <strong>{hackathon.judges?.length || 0} assigned</strong>
-                </div>
-                {hackathon.tags && hackathon.tags.length > 0 && (
-                  <div className="flex gap-1.5 flex-wrap mt-2">
-                    {hackathon.tags.map(t => <span key={t} className="chip chip-dark text-xs">{t}</span>)}
+                {hackathon.prizePool && (
+                  <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 2, background: 'rgba(5,5,7,0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(251,191,36,0.38)', borderRadius: 12, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <FiAward size={14} style={{ color: '#fbbf24' }} />
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fbbf24' }}>{hackathon.prizePool}</span>
                   </div>
                 )}
               </div>
+
+              {/* Title Block */}
+              <div style={{ padding: '24px 32px 28px', marginTop: -40, position: 'relative', zIndex: 2 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <span style={{ padding: '4px 12px', borderRadius: 99, background: 'rgba(52,211,153,0.14)', border: '1px solid rgba(52,211,153,0.28)', color: '#34d399', fontSize: '0.72rem', fontWeight: 700 }}>
+                    ● {hackathon.status?.toUpperCase() || 'OPEN'}
+                  </span>
+                  <span style={{ padding: '4px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', fontSize: '0.72rem', fontWeight: 600 }}>
+                    {hackathon.mode === 'online' ? <FiGlobe size={11} /> : <FiMapPin size={11} />} {hackathon.mode}
+                  </span>
+                  {hackathon.theme && (
+                    <span style={{ padding: '4px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: '0.72rem', fontWeight: 600 }}>
+                      {hackathon.theme}
+                    </span>
+                  )}
+                </div>
+
+                <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2.4rem', margin: '0 0 10px 0', lineHeight: 1.1 }}>
+                  {hackathon.title}
+                </h1>
+                <p style={{ fontSize: '0.92rem', color: 'rgba(255,255,255,0.6)', maxWidth: 780, lineHeight: 1.6, margin: 0 }}>
+                  {hackathon.description}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
+
+            {/* Main Content & Registration Sidebar Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24 }}>
+              
+              {/* Left Column — Details, Criteria & Judges */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                
+                {/* Dates & Schedule */}
+                <div className="liquid-glass" style={{ borderRadius: 22, padding: '24px 26px' }}>
+                  <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem', margin: '0 0 16px 0' }}>Schedule & Details</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 4 }}>Event Duration</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <FiCalendar size={14} />
+                        {new Date(hackathon.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – {new Date(hackathon.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 4 }}>Team Constraints</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <FiUsers size={14} /> Up to {hackathon.maxTeamSize || 4} members per team
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Judging Criteria Parameters */}
+                <div className="liquid-glass" style={{ borderRadius: 22, padding: '24px 26px' }}>
+                  <h3 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem', margin: '0 0 16px 0' }}>Judging Criteria</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {(hackathon.judgingCriteria || []).map((c, idx) => (
+                      <div key={idx} style={{ padding: '14px 16px', borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>{c.criterion}</div>
+                          {c.description && <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>{c.description}</div>}
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: 8 }}>
+                          Max {c.maxScore} pts
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column — Registration Card & Leaderboard Link */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                
+                {/* Registration Card */}
+                <div className="liquid-glass" style={{ borderRadius: 22, padding: '24px 22px' }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '1rem', margin: '0 0 6px 0' }}>Registration Status</h3>
+                  <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', marginBottom: 20 }}>
+                    Register solo or form a team workspace to submit your entry.
+                  </p>
+
+                  {registerStatus === 'approved' ? (
+                    <div style={{ padding: 16, borderRadius: 14, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.28)', textAlign: 'center', marginBottom: 12 }}>
+                      <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem' }}>✓ Registration Approved</div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>You are registered for this hackathon!</div>
+                    </div>
+                  ) : registerStatus === 'pending' ? (
+                    <div style={{ padding: 16, borderRadius: 14, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', textAlign: 'center', marginBottom: 12 }}>
+                      <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.9rem' }}>⏳ Registration Pending</div>
+                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>Organizer review in progress.</div>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <button
+                        onClick={() => setShowTeamModal(true)}
+                        style={{ padding: '12px', borderRadius: 12, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                      >
+                        <FiUserPlus /> Register Team / Form Workspace
+                      </button>
+                      <button
+                        onClick={handleRegisterSolo}
+                        style={{ padding: '12px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}
+                      >
+                        Register as Solo Participant
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '18px 0' }} />
+
+                  <Link
+                    to={`/hackathons/${id}/leaderboard`}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                      color: '#ffffff', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none'
+                    }}
+                  >
+                    <FiAward style={{ color: '#fbbf24' }} /> View Live Leaderboard ↗
+                  </Link>
+                </div>
+
+              </div>
+
+            </div>
+          </>
+        )}
+
       </div>
 
-      {/* Team Registration Modal with QR Generator */}
-      <TeamRegistrationModal 
-        hackathon={hackathon}
-        isOpen={showTeamModal}
-        onClose={() => setShowTeamModal(false)}
-        onSuccess={(team) => {
-          setMyTeam(team);
-        }}
-      />
+      {showTeamModal && (
+        <TeamRegistrationModal
+          hackathonId={id}
+          maxTeamSize={hackathon?.maxTeamSize || 4}
+          onClose={() => setShowTeamModal(false)}
+          onSuccess={() => {
+            setShowTeamModal(false);
+            setRegisterStatus('approved');
+            toast.success('Team registered successfully!');
+          }}
+        />
+      )}
+
     </div>
   );
 }
