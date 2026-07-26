@@ -175,8 +175,8 @@ export default function RepositoriesPage() {
               rel="noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10,
-                background: '#5e6ad2', color: '#fff', fontSize: '0.82rem', fontWeight: 600,
-                textDecoration: 'none', boxShadow: '0 4px 14px rgba(94,106,210,0.4)', transition: 'all 0.2s'
+                background: '#ffffff', color: '#060709', fontSize: '0.82rem', fontWeight: 700,
+                textDecoration: 'none', boxShadow: '0 4px 16px rgba(255,255,255,0.3)', transition: 'all 0.2s'
               }}
             >
               <span>View Profile on GitHub</span>

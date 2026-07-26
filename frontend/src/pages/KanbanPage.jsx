@@ -377,8 +377,8 @@ export default function KanbanPage() {
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ padding: 8, borderRadius: 10, background: 'rgba(94,106,210,0.2)', border: '1px solid rgba(94,106,210,0.4)' }}>
-                <Kanban size={20} color="#818cf8" />
+              <div style={{ padding: 8, borderRadius: 10, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)' }}>
+                <Kanban size={20} color="#ffffff" />
               </div>
               <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#fff', margin: 0 }}>
                 Sprint Kanban Board
@@ -399,7 +399,7 @@ export default function KanbanPage() {
                 color: '#fff', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
               }}
             >
-              <PieChart size={14} color="#818cf8" />
+              <PieChart size={14} color="#ffffff" />
               <span>AI Summary</span>
             </button>
 
@@ -443,8 +443,8 @@ export default function KanbanPage() {
               onClick={() => setChatOpen(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9,
-                background: 'rgba(94, 106, 210, 0.25)', border: '1px solid rgba(94, 106, 210, 0.4)',
-                color: '#818cf8', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
+                background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
               }}
             >
               <MessageSquare size={14} />
@@ -454,12 +454,12 @@ export default function KanbanPage() {
             <button
               onClick={() => setAiModalOpen(true)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9,
-                background: '#5e6ad2', border: 'none', color: '#fff', fontSize: '0.78rem',
-                fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 14px rgba(94,106,210,0.4)'
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9,
+                background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.78rem',
+                fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)'
               }}
             >
-              <Sparkles size={14} />
+              <Sparkles size={14} color="#060709" />
               <span>AI Task Generator</span>
             </button>
           </div>
@@ -530,7 +530,7 @@ export default function KanbanPage() {
                 color: '#fff', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
               }}
             >
-              <PlusCircle size={14} color="#818cf8" />
+              <PlusCircle size={14} color="#ffffff" />
               <span>+ Add Column</span>
             </button>
 
@@ -542,11 +542,11 @@ export default function KanbanPage() {
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9,
-                background: '#5e6ad2', border: 'none', color: '#fff', fontSize: '0.78rem',
-                fontWeight: 600, cursor: 'pointer'
+                background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.78rem',
+                fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(255,255,255,0.3)'
               }}
             >
-              <Plus size={15} />
+              <Plus size={15} color="#060709" />
               <span>+ New Task</span>
             </button>
           </div>

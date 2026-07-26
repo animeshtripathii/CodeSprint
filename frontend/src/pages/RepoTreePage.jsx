@@ -691,9 +691,9 @@ export default function RepoTreePage() {
             <button
               onClick={() => setViewMode('explorer')}
               style={{
-                padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-                background: viewMode === 'explorer' ? '#5e6ad2' : 'transparent',
-                color: viewMode === 'explorer' ? '#fff' : 'rgba(255,255,255,0.6)',
+                padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                background: viewMode === 'explorer' ? '#ffffff' : 'transparent',
+                color: viewMode === 'explorer' ? '#060709' : 'rgba(255,255,255,0.6)',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s'
               }}
             >
@@ -704,13 +704,13 @@ export default function RepoTreePage() {
             <button
               onClick={() => setViewMode('graph')}
               style={{
-                padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
-                background: viewMode === 'graph' ? '#5e6ad2' : 'transparent',
-                color: viewMode === 'graph' ? '#fff' : 'rgba(255,255,255,0.6)',
+                padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
+                background: viewMode === 'graph' ? '#ffffff' : 'transparent',
+                color: viewMode === 'graph' ? '#060709' : 'rgba(255,255,255,0.6)',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s'
               }}
             >
-              <Sparkles size={13} color="#818cf8" />
+              <Sparkles size={13} color={viewMode === 'graph' ? '#060709' : '#ffffff'} />
               <span>Canvas Node Tree</span>
             </button>
           </div>
@@ -733,7 +733,7 @@ export default function RepoTreePage() {
               rel="noreferrer"
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8,
-                background: '#5e6ad2', color: '#fff', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none'
+                background: '#ffffff', color: '#060709', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none'
               }}
             >
               <span>GitHub</span>

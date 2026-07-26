@@ -338,8 +338,8 @@ export default function TeamWorkspacePage() {
               to={`/hackathons/${team?.hackathon?._id || 'hack-dummy-1'}/submission`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9,
-                background: '#5e6ad2', color: '#fff', fontSize: '0.78rem', fontWeight: 600,
-                textDecoration: 'none', boxShadow: '0 4px 14px rgba(94,106,210,0.4)'
+                background: '#ffffff', color: '#060709', fontSize: '0.78rem', fontWeight: 700,
+                textDecoration: 'none', boxShadow: '0 4px 16px rgba(255,255,255,0.3)'
               }}
             >
               <FiAward size={14} />

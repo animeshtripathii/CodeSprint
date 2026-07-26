@@ -1214,11 +1214,11 @@ function JudgeDash() {
         {/* Tabs: Pending / Reviewed */}
         <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 9, padding: 3 }}>
-            {[{ id: 'pending', color: '#7c3aed' }, { id: 'reviewed', color: '#059669' }].map(t => (
+            {[{ id: 'pending', bg: '#ffffff', color: '#060709' }, { id: 'reviewed', bg: 'rgba(255,255,255,0.16)', color: '#ffffff' }].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-                flex: 1, padding: '6px 0', borderRadius: 6, border: 'none', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                background: activeTab === t.id ? t.color : 'transparent',
-                color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.38)',
+                flex: 1, padding: '6px 0', borderRadius: 6, border: 'none', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                background: activeTab === t.id ? t.bg : 'transparent',
+                color: activeTab === t.id ? t.color : 'rgba(255,255,255,0.38)',
               }}>
                 {t.id.charAt(0).toUpperCase() + t.id.slice(1)}
               </button>
@@ -1231,11 +1231,11 @@ function JudgeDash() {
           {navItems.map(n => (
             <button key={n.id} onClick={() => { setActiveNav(n.id); if (n.id === 'submissions' && hackathons[0]) navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`); }} style={{
               width: '100%', padding: '9px 10px', borderRadius: 8, border: 'none',
-              background: activeNav === n.id ? 'rgba(124,58,237,0.14)' : 'transparent',
-              borderLeft: `2px solid ${activeNav === n.id ? '#7c3aed' : 'transparent'}`,
-              color: activeNav === n.id ? '#c4b5fd' : 'rgba(255,255,255,0.42)',
+              background: activeNav === n.id ? 'rgba(255,255,255,0.12)' : 'transparent',
+              borderLeft: `2px solid ${activeNav === n.id ? '#ffffff' : 'transparent'}`,
+              color: activeNav === n.id ? '#ffffff' : 'rgba(255,255,255,0.42)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9,
-              fontSize: '0.78rem', fontWeight: activeNav === n.id ? 600 : 400, textAlign: 'left', transition: 'all 0.15s', marginBottom: 1,
+              fontSize: '0.78rem', fontWeight: activeNav === n.id ? 700 : 400, textAlign: 'left', transition: 'all 0.15s', marginBottom: 1,
             }}>
               <span style={{ fontSize: '0.88rem' }}>{n.icon}</span> {n.label}
             </button>
@@ -1436,15 +1436,15 @@ function JudgeDash() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, position: 'relative' }}>
                 <button
                   onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
-                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(124,58,237,0.42)', border: '1px solid rgba(124,58,237,0.6)', color: '#fff', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.62)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(124,58,237,0.42)'}
+                  style={{ padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
                 >
                   ⚡ Start AI Review
                 </button>
                 <button
                   onClick={() => hackathons[0] && navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`)}
-                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                 >
                   📋 All Submissions
                 </button>
@@ -1475,16 +1475,16 @@ function JudgeDash() {
                 {selectedSub ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>📦</div>
+                      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>📦</div>
                       <div>
                         <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.35rem', lineHeight: 1 }}>{selectedSub.projectName}</div>
                         <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>
-                          by Team <span style={{ color: '#a78bfa' }}>{selectedSub.team?.name || '—'}</span>
+                          by Team <span style={{ color: '#ffffff' }}>{selectedSub.team?.name || '—'}</span>
                         </div>
                       </div>
                       {selectedSub._id && (
                         <div style={{ display: 'flex', gap: 6, marginLeft: 6, flexWrap: 'wrap' }}>
-                          <button onClick={() => navigate(`/judge/submissions/${selectedSub._id}/review`)} style={{ padding: '5px 13px', borderRadius: 8, background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.38)', color: '#c4b5fd', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+                          <button onClick={() => navigate(`/judge/submissions/${selectedSub._id}/review`)} style={{ padding: '5px 13px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
                             {selectedSub.reviewed ? '✏️ Edit Review' : '⚖️ Start Review'}
                           </button>
                           <button onClick={() => navigate(`/judge/hackathon/${hackathons[0]?._id}/submissions`)} style={{ padding: '5px 13px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.55)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
@@ -1496,7 +1496,7 @@ function JudgeDash() {
 
                     {/* Big score display */}
                     <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-end', gap: 14 }}>
-                      <div style={{ fontSize: '3.2rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px', color: selectedSub.reviewed ? '#8b5cf6' : 'rgba(255,255,255,0.12)' }}>
+                      <div style={{ fontSize: '3.2rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px', color: selectedSub.reviewed ? '#ffffff' : 'rgba(255,255,255,0.12)' }}>
                         {selectedSub.reviewed ? (selectedSub.myScore ?? '—') : '—'}
                         {selectedSub.reviewed && <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.3)', fontWeight: 400, letterSpacing: 0 }}> / 10</span>}
                       </div>
@@ -1517,7 +1517,7 @@ function JudgeDash() {
                     {/* Tech tags */}
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                       {(selectedSub.techStack || []).map(t => (
-                        <span key={t} style={{ fontSize: '0.62rem', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.22)', color: '#a78bfa', padding: '3px 9px', borderRadius: 8 }}>{t}</span>
+                        <span key={t} style={{ fontSize: '0.62rem', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#ffffff', padding: '3px 9px', borderRadius: 8 }}>{t}</span>
                       ))}
                     </div>
                   </>
@@ -1536,9 +1536,9 @@ function JudgeDash() {
                   <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 2 }}>
                     {['Quick', 'Detail'].map(m => (
                       <button key={m} onClick={() => setActiveCriteriaMode(m)} style={{
-                        padding: '4px 10px', borderRadius: 6, border: 'none', fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                        background: activeCriteriaMode === m ? '#7c3aed' : 'transparent',
-                        color: activeCriteriaMode === m ? '#fff' : 'rgba(255,255,255,0.38)',
+                        padding: '4px 10px', borderRadius: 6, border: 'none', fontSize: '0.62rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                        background: activeCriteriaMode === m ? '#ffffff' : 'transparent',
+                        color: activeCriteriaMode === m ? '#060709' : 'rgba(255,255,255,0.38)',
                       }}>{m}</button>
                     ))}
                   </div>
@@ -1548,7 +1548,7 @@ function JudgeDash() {
                   {criteria.map((c, i) => {
                     const mockVal = selectedSub?.reviewed ? [7.5, 8, 6.5, 7][i % 4] : null;
                     const pct = mockVal ? (mockVal / (c.maxScore || 10)) * 100 : 0;
-                    const bc = CRIT_COLORS[i % 4];
+                    const bc = ['#ffffff', '#38bdf8', '#34d399', '#fbbf24'][i % 4];
                     return (
                       <div key={c.criterion}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -1565,9 +1565,9 @@ function JudgeDash() {
 
                 <button
                   onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
-                  style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.38)', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.55)'}
-                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(124,58,237,0.38)'}
+                  style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
                 >
                   {selectedSub?.reviewed ? '✏️ Edit Full Review' : '⚖️ Open Review Form'}
                 </button>
