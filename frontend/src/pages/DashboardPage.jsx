@@ -1131,7 +1131,7 @@ function Sparkline({ data, color = '#8b5cf6', width = 130, height = 45, id }) {
 
 /* ── Judge Dashboard (Stakent-style premium) ── */
 function JudgeDash() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1198,17 +1198,17 @@ function JudgeDash() {
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0d0e14', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
       {/* ══════════════ LEFT SUB-SIDEBAR ══════════════ */}
-      <div style={{ width: 214, flexShrink: 0, background: '#111219', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <div style={{ width: 220, flexShrink: 0, background: '#111219', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
         {/* Logo */}
-        <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>⚖️</div>
+        <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>⚡</div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.85rem', lineHeight: 1 }}>Judge Panel</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Review Console</div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff', lineHeight: 1 }}>HackForge</div>
+              <div style={{ fontSize: '0.62rem', color: '#c4b5fd', marginTop: 3, fontWeight: 600 }}>⚖️ Judge Console</div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Tabs: Pending / Reviewed */}
@@ -1279,13 +1279,33 @@ function JudgeDash() {
 
         {/* Progress pill */}
         <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(79,70,229,0.12))', border: '1px solid rgba(124,58,237,0.28)', borderRadius: 10, padding: '10px 13px' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(79,70,229,0.12))', border: '1px solid rgba(124,58,237,0.28)', borderRadius: 10, padding: '10px 13px', marginBottom: 10 }}>
             <div style={{ fontSize: '0.62rem', color: '#a78bfa', fontWeight: 700, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>⚡ Review Progress</div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>{done} / {total} Reviews</div>
             <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #7c3aed, #4f46e5)', borderRadius: 4, transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)', boxShadow: '0 0 8px rgba(124,58,237,0.5)' }} />
             </div>
             <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.35)', marginTop: 5, textAlign: 'right' }}>{progressPct}% complete</div>
+          </div>
+
+          {/* User profile & logout */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
+                {user?.name?.[0]?.toUpperCase() || 'J'}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name || 'Judge'}</div>
+                <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)' }}>Judge Role</div>
+              </div>
+            </div>
+            <button
+              onClick={() => logout && logout()}
+              title="Log Out"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)', cursor: 'pointer', fontSize: '0.75rem' }}
+            >
+              🚪
+            </button>
           </div>
         </div>
       </div>
@@ -1607,6 +1627,7 @@ function AdminDash() {
 /* ── Main Router ── */
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isJudge = user?.role === 'judge';
 
   const Dash = {
     participant: ParticipantDash,
@@ -1617,7 +1638,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#050507' }}>
-      <Sidebar />
+      {!isJudge && <Sidebar />}
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <Dash />
       </main>
