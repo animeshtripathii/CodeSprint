@@ -224,7 +224,7 @@ export default function JudgeDash() {
         <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(9, 10, 15, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 20, flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', marginBottom: 2 }}>
-              {selectedHack ? selectedHack.title : 'Assigned Hackathons'} · <span style={{ color: '#fbbf24' }}>{loading ? '…' : `${pending} Pending`}</span>
+              Assigned Event: <span style={{ color: '#ffffff', fontWeight: 700 }}>{selectedHack?.title || 'None'}</span> · <span style={{ color: '#fbbf24' }}>{loading ? '…' : `${pending} Pending`}</span>
             </div>
             <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.45rem', lineHeight: 1 }}>Top Submissions</div>
           </div>
@@ -247,111 +247,144 @@ export default function JudgeDash() {
         {/* ─ Body ─ */}
         <div style={{ padding: '18px 22px', flex: 1 }}>
 
-          {/* ══ Top row: 3 submission cards + AI card ══ */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 268px', gap: 13, marginBottom: 16 }}>
-
-            {/* 3 Submission cards */}
-            {(loading
-              ? [null, null, null]
-              : topSubs.length >= 3 ? topSubs.slice(0, 3) : [...topSubs, ...Array(3 - topSubs.length).fill(null)]
-            ).map((s, i) => {
-              const color = ['#ffffff', '#38bdf8', '#fbbf24'][i];
-              const isGain = i < 2;
-              const changeVal = (1.2 + i * 0.4).toFixed(1);
-              const medals = ['🥇', '🥈', '🥉'];
-              return (
-                <div key={s?._id || i}
-                  onClick={() => s?._id && setSelectedSub(s)}
-                  className="liquid-glass"
-                  style={{ borderRadius: 22, padding: '17px 16px 13px', cursor: s?._id ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
-                >
-                  {/* Card header */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem' }}>
-                        {medals[i]}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          {loading ? '…' : s?.reviewed ? 'Reviewed' : 'Pending'}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {loading ? '———' : (s?.projectName || 'No Submission')}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={e => { e.stopPropagation(); if (s?._id) navigate(`/judge/submissions/${s._id}/review`); }}
-                      style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}
-                    >↗</button>
+          {/* Banner showing assigned hackathon status */}
+          {selectedHack && (
+            <div className="liquid-glass" style={{ padding: '12px 18px', borderRadius: 16, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: '1.2rem' }}>🏆</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff' }}>
+                    Active Assignment: {selectedHack.title}
                   </div>
-
-                  {/* Team */}
-                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
-                    Team · <span style={{ color: '#ffffff' }}>{loading ? '…' : (s?.team?.name || '—')}</span>
-                  </div>
-
-                  {/* Score */}
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1, color: loading || !s ? 'rgba(255,255,255,0.2)' : color }}>
-                      {loading ? '—' : s?.reviewed ? `${s.myScore ?? '—'}/10` : 'Pending'}
-                    </div>
-                    <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isGain ? '#34d399' : '#fb7185', marginTop: 4 }}>
-                      {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{changeVal} pts from avg
-                    </div>
-                  </div>
-
-                  {/* Sparkline */}
-                  <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden' }}>
-                    <Sparkline data={SPARK_DATA[i]} color={color} width={170} height={48} id={`top${i}`} />
-                  </div>
-
-                  {/* Tags */}
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                    {(s?.techStack || ['React', 'AI']).slice(0, 2).map(t => (
-                      <span key={t} style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', padding: '2px 7px', borderRadius: 7 }}>{t}</span>
-                    ))}
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)' }}>
+                    Theme: {selectedHack.theme || 'General'} · Mode: {selectedHack.mode || 'Online'}
                   </div>
                 </div>
-              );
-            })}
-
-            {/* AI Review Assistant card */}
-            <div className="liquid-glass" style={{ borderRadius: 22, padding: '18px 16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>⚖️</div>
-                  <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>Judge AI</span>
-                </div>
-                <span style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.12)', color: '#ffffff', borderRadius: 6, padding: '2px 7px', fontWeight: 700 }}>Beta</span>
               </div>
+              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(52,211,153,0.14)', color: '#34d399', border: '1px solid rgba(52,211,153,0.28)' }}>
+                ● Judge Assigned
+              </span>
+            </div>
+          )}
 
-              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.25rem', lineHeight: 1.25, marginBottom: 7, position: 'relative' }}>
-                AI Review Assistant
+          {/* ══ Top row: submission cards OR Awaiting submissions state ══ */}
+          {topSubs.length === 0 ? (
+            <div className="liquid-glass" style={{ borderRadius: 22, padding: '36px 24px', textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>📦</div>
+              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.6rem', color: '#fff', marginBottom: 6 }}>
+                Awaiting Team Project Submissions
               </div>
-              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.55, flex: 1, position: 'relative', marginBottom: 0 }}>
-                Auto-generate polished feedback notes, get AI score suggestions against judging criteria, and spot inconsistencies across your reviews.
+              <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', maxWidth: 520, margin: '0 auto 16px', lineHeight: 1.6 }}>
+                You are assigned as a judge for <strong style={{ color: '#fff' }}>{selectedHack?.title || 'this hackathon'}</strong>. Participating teams will submit their project code & demos here for scoring.
               </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, position: 'relative' }}>
-                <button
-                  onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
-                  style={{ padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
-                >
-                  ⚡ Start AI Review
-                </button>
-                <button
-                  onClick={() => hackathons[0] && navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`)}
-                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                >
-                  📋 All Submissions
-                </button>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 99, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>
+                ⏳ Live Evaluation Stream Active
               </div>
             </div>
-          </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 268px', gap: 13, marginBottom: 16 }}>
+
+              {/* 3 Submission cards */}
+              {(topSubs.length >= 3 ? topSubs.slice(0, 3) : [...topSubs, ...Array(3 - topSubs.length).fill(null)]
+              ).map((s, i) => {
+                const color = ['#ffffff', '#38bdf8', '#fbbf24'][i];
+                const isGain = i < 2;
+                const changeVal = (1.2 + i * 0.4).toFixed(1);
+                const medals = ['🥇', '🥈', '🥉'];
+                return (
+                  <div key={s?._id || i}
+                    onClick={() => s?._id && setSelectedSub(s)}
+                    className="liquid-glass"
+                    style={{ borderRadius: 22, padding: '17px 16px 13px', cursor: s?._id ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+                  >
+                    {/* Card header */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem' }}>
+                          {medals[i]}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            {loading ? '…' : s?.reviewed ? 'Reviewed' : 'Pending'}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {loading ? '———' : (s?.projectName || 'No Submission')}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={e => { e.stopPropagation(); if (s?._id) navigate(`/judge/submissions/${s._id}/review`); }}
+                        style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}
+                      >↗</button>
+                    </div>
+
+                    {/* Team */}
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                      Team · <span style={{ color: '#ffffff' }}>{loading ? '…' : (s?.team?.name || '—')}</span>
+                    </div>
+
+                    {/* Score */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1, color: loading || !s ? 'rgba(255,255,255,0.2)' : color }}>
+                        {loading ? '—' : s?.reviewed ? `${s.myScore ?? '—'}/10` : 'Pending'}
+                      </div>
+                      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isGain ? '#34d399' : '#fb7185', marginTop: 4 }}>
+                        {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{changeVal} pts from avg
+                      </div>
+                    </div>
+
+                    {/* Sparkline */}
+                    <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden' }}>
+                      <Sparkline data={SPARK_DATA[i]} color={color} width={170} height={48} id={`top${i}`} />
+                    </div>
+
+                    {/* Tags */}
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                      {(s?.techStack || ['React', 'AI']).slice(0, 2).map(t => (
+                        <span key={t} style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', padding: '2px 7px', borderRadius: 7 }}>{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* AI Review Assistant card */}
+              <div className="liquid-glass" style={{ borderRadius: 22, padding: '18px 16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>⚖️</div>
+                    <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>Judge AI</span>
+                  </div>
+                  <span style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.12)', color: '#ffffff', borderRadius: 6, padding: '2px 7px', fontWeight: 700 }}>Beta</span>
+                </div>
+
+                <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.25rem', lineHeight: 1.25, marginBottom: 7, position: 'relative' }}>
+                  AI Review Assistant
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.55, flex: 1, position: 'relative', marginBottom: 0 }}>
+                  Auto-generate polished feedback notes, get AI score suggestions against judging criteria, and spot inconsistencies across your reviews.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, position: 'relative' }}>
+                  <button
+                    onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
+                    style={{ padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                  >
+                    ⚡ Start AI Review
+                  </button>
+                  <button
+                    onClick={() => hackathons[0] && navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`)}
+                    style={{ padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                  >
+                    📋 All Submissions
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ══ Active Review Detail panel ══ */}
           <div className="liquid-glass" style={{ borderRadius: 22, overflow: 'hidden' }}>
@@ -425,7 +458,7 @@ export default function JudgeDash() {
                 ) : (
                   <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.3)' }}>
                     <div style={{ fontSize: '2.2rem', marginBottom: 10 }}>👈</div>
-                    <div style={{ fontSize: '0.82rem' }}>Select a submission from the sidebar</div>
+                    <div style={{ fontSize: '0.82rem' }}>{topSubs.length === 0 ? "Awaiting project submissions from teams" : "Select a submission from the sidebar"}</div>
                   </div>
                 )}
               </div>
@@ -466,9 +499,8 @@ export default function JudgeDash() {
 
                 <button
                   onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
-                  style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
-                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                  disabled={!selectedSub}
+                  style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 10, background: selectedSub ? '#ffffff' : 'rgba(255,255,255,0.1)', border: 'none', color: selectedSub ? '#060709' : 'rgba(255,255,255,0.3)', fontWeight: 700, fontSize: '0.76rem', cursor: selectedSub ? 'pointer' : 'default', boxShadow: selectedSub ? '0 4px 14px rgba(255,255,255,0.3)' : 'none', transition: 'all 0.2s' }}
                 >
                   {selectedSub?.reviewed ? '✏️ Edit Full Review' : '⚖️ Open Review Form'}
                 </button>

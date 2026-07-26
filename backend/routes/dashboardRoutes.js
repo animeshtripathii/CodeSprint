@@ -86,12 +86,19 @@ router.get('/participant', protect, authorize('participant', 'organizer', 'judge
  * GET /api/dashboard/judge
  */
 router.get('/judge', protect, authorize('judge', 'organizer', 'admin'), asyncHandler(async (req, res) => {
-  const hackathons = await Hackathon.find({
+  let hackathons = await Hackathon.find({
     $or: [
       { judges: req.user._id },
       { organizer: req.user._id }
     ]
-  }).select('title status startDate endDate theme judgingCriteria banner');
+  }).select('title status startDate endDate theme judgingCriteria banner mode prizePool');
+
+  if (hackathons.length === 0) {
+    hackathons = await Hackathon.find({})
+      .select('title status startDate endDate theme judgingCriteria banner mode prizePool')
+      .sort({ createdAt: -1 })
+      .limit(5);
+  }
 
   const hackathonIds = hackathons.map((h) => h._id);
 
