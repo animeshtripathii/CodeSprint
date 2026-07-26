@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import {
   FiSearch, FiFilter, FiCalendar, FiUsers, FiAward,
-  FiChevronRight, FiGlobe, FiMapPin, FiX, FiGrid, FiList
+  FiChevronRight, FiGlobe, FiMapPin, FiX, FiGrid, FiList, FiPlus
 } from 'react-icons/fi';
+import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 
 /* ── Status badge ── */
 const StatusBadge = ({ status }) => {
   const map = {
-    open: { label:'Open', color:'#34d399', bg:'rgba(52,211,153,0.1)', border:'rgba(52,211,153,0.22)', dot:'#34d399' },
-    upcoming: { label:'Upcoming', color:'#a78bfa', bg:'rgba(167,139,250,0.1)', border:'rgba(167,139,250,0.22)', dot:'#a78bfa' },
-    ongoing: { label:'Ongoing', color:'#fbbf24', bg:'rgba(251,191,36,0.1)', border:'rgba(251,191,36,0.22)', dot:'#fbbf24' },
-    ended: { label:'Ended', color:'#6b7280', bg:'rgba(107,114,128,0.1)', border:'rgba(107,114,128,0.2)', dot:'#6b7280' },
+    open: { label:'Open', color:'#34d399', bg:'rgba(52,211,153,0.12)', border:'rgba(52,211,153,0.28)', dot:'#34d399' },
+    upcoming: { label:'Upcoming', color:'#38bdf8', bg:'rgba(56,189,248,0.12)', border:'rgba(56,189,248,0.28)', dot:'#38bdf8' },
+    ongoing: { label:'Ongoing', color:'#fbbf24', bg:'rgba(251,191,36,0.12)', border:'rgba(251,191,36,0.28)', dot:'#fbbf24' },
+    ended: { label:'Ended', color:'#94a3b8', bg:'rgba(148,163,184,0.12)', border:'rgba(148,163,184,0.2)', dot:'#94a3b8' },
   };
   const s = map[status] || map.ended;
   return (
     <span style={{
-      display:'inline-flex', alignItems:'center', gap:5,
+      display:'inline-flex', alignItems:'center', gap:6,
       background:s.bg, color:s.color, border:`1px solid ${s.border}`,
-      padding:'3px 10px', borderRadius:999, fontSize:'0.7rem', fontWeight:700, letterSpacing:'0.01em',
+      padding:'4px 12px', borderRadius:999, fontSize:'0.72rem', fontWeight:700, letterSpacing:'0.02em',
     }}>
-      <span style={{ width:5, height:5, borderRadius:'50%', background:s.dot, flexShrink:0, ...(status==='open'?{animation:'pulse-ring 2s infinite'}:{}) }} />
+      <span style={{ width:6, height:6, borderRadius:'50%', background:s.dot, flexShrink:0 }} />
       {s.label}
     </span>
   );
@@ -32,23 +33,23 @@ const StatusBadge = ({ status }) => {
 const ModeBadge = ({ mode }) => (
   <span style={{
     display:'inline-flex', alignItems:'center', gap:5,
-    background:'rgba(255,255,255,0.05)', color:'var(--text-secondary)',
-    border:'1px solid var(--glass-border)',
-    padding:'3px 10px', borderRadius:999, fontSize:'0.7rem', fontWeight:600,
+    background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.7)',
+    border:'1px solid rgba(255,255,255,0.12)',
+    padding:'4px 11px', borderRadius:999, fontSize:'0.72rem', fontWeight:600,
   }}>
-    {mode === 'online' ? <FiGlobe size={10}/> : <FiMapPin size={10}/>}
+    {mode === 'online' ? <FiGlobe size={11}/> : <FiMapPin size={11}/>}
     {mode?.charAt(0).toUpperCase() + mode?.slice(1)}
   </span>
 );
 
 /* ── Skeleton card ── */
 const SkeletonCard = () => (
-  <div style={{ background:'var(--glass-bg)', border:'1px solid var(--glass-border)', borderRadius:16, overflow:'hidden' }}>
+  <div className="liquid-glass" style={{ borderRadius:22, overflow:'hidden', height:340 }}>
     <div className="skeleton" style={{ height:160 }} />
     <div style={{ padding:20 }}>
-      <div className="skeleton" style={{ height:18, width:'65%', marginBottom:12 }} />
-      <div className="skeleton" style={{ height:13, width:'45%', marginBottom:8 }} />
-      <div className="skeleton" style={{ height:13, width:'55%' }} />
+      <div className="skeleton" style={{ height:20, width:'70%', marginBottom:12 }} />
+      <div className="skeleton" style={{ height:14, width:'50%', marginBottom:8 }} />
+      <div className="skeleton" style={{ height:14, width:'60%' }} />
     </div>
   </div>
 );
@@ -56,16 +57,18 @@ const SkeletonCard = () => (
 /* ── Filter Pill ── */
 const FilterPill = ({ label, active, onClick }) => (
   <button onClick={onClick} style={{
-    padding:'6px 16px', borderRadius:999, fontSize:'0.8rem', fontWeight:600,
-    background: active ? 'rgba(91,110,248,0.18)' : 'rgba(255,255,255,0.04)',
-    color: active ? '#a5b4fc' : 'var(--text-secondary)',
-    border: active ? '1px solid rgba(91,110,248,0.35)' : '1px solid rgba(255,255,255,0.08)',
-    cursor:'pointer', transition:'all 0.15s ease',
+    padding:'7px 18px', borderRadius:999, fontSize:'0.78rem', fontWeight:700,
+    background: active ? '#ffffff' : 'rgba(255,255,255,0.05)',
+    color: active ? '#060709' : 'rgba(255,255,255,0.6)',
+    border: active ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.12)',
+    boxShadow: active ? '0 4px 14px rgba(255,255,255,0.25)' : 'none',
+    cursor:'pointer', transition:'all 0.2s ease',
     whiteSpace:'nowrap',
   }}>{label}</button>
 );
 
 export default function HackathonsPage() {
+  const navigate = useNavigate();
   const [hackathons, setHackathons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -135,256 +138,287 @@ export default function HackathonsPage() {
   const pages = Math.ceil(total / 9);
 
   return (
-    <div style={{ background:'var(--bg-base)', minHeight:'100vh', color:'var(--text-primary)' }}>
+    <div style={{ position:'relative', background:'#050507', minHeight:'100vh', color:'#f0f2ff', fontFamily:"'Inter', sans-serif", overflow:'hidden' }}>
+      
+      {/* ── Canvas Dotted Glow Background ── */}
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
+
       <Navbar dark={true} />
 
-      {/* ── Page header ── */}
-      <div style={{
-        paddingTop:62,
-        background:'linear-gradient(180deg, rgba(91,110,248,0.08) 0%, transparent 100%)',
-        borderBottom:'1px solid var(--glass-border)',
-      }}>
-        <div className="container" style={{ padding:'60px 24px 48px' }}>
-          <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, flexWrap:'wrap' }}>
-            <div>
-              <span style={{ fontSize:'0.68rem', textTransform:'uppercase', letterSpacing:'0.14em', fontWeight:700, color:'var(--accent-primary)', display:'block', marginBottom:10 }}>
-                Discover
-              </span>
-              <h1 style={{ fontFamily:'Space Grotesk,sans-serif', fontSize:'clamp(1.8rem,4vw,2.8rem)', fontWeight:800, letterSpacing:'-0.035em', marginBottom:8, color:'var(--text-primary)' }}>
-                Browse Hackathons
-              </h1>
-              <p style={{ color:'var(--text-secondary)', fontSize:'0.95rem', maxWidth:460, lineHeight:1.6 }}>
-                Find your next challenge. Filter by mode, status, and theme to discover the perfect event.
-              </p>
-            </div>
+      <div style={{ position:'relative', zIndex:10 }}>
 
-            {/* View toggle */}
-            <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.04)', border:'1px solid var(--glass-border)', borderRadius:10, padding:4 }}>
-              {[['grid',<FiGrid size={14}/>],['list',<FiList size={14}/>]].map(([m,icon])=>(
-                <button key={m} onClick={()=>setViewMode(m)} style={{
-                  width:34, height:34, borderRadius:7, display:'flex', alignItems:'center', justifyContent:'center',
-                  background: viewMode===m ? 'rgba(91,110,248,0.25)' : 'transparent',
-                  color: viewMode===m ? '#a5b4fc' : 'var(--text-tertiary)',
-                  border: viewMode===m ? '1px solid rgba(91,110,248,0.3)' : '1px solid transparent',
-                  cursor:'pointer', transition:'all 0.15s ease',
-                }}>{icon}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search & filter row */}
-          <div style={{ marginTop:32, display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
-            {/* Search */}
-            <div style={{ position:'relative', flex:1, minWidth:260, maxWidth:460 }}>
-              <FiSearch size={15} style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'var(--text-tertiary)' }} />
-              <input
-                className="input"
-                placeholder="Search hackathons, themes..."
-                style={{ paddingLeft:38, borderRadius:10 }}
-                value={filters.search}
-                onChange={e => handleFilter('search', e.target.value)}
-              />
-            </div>
-
-            {/* Quick filter pills */}
-            <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-              <FilterPill label="All" active={!filters.status} onClick={() => handleFilter('status','')} />
-              <FilterPill label="🟢 Open" active={filters.status==='open'} onClick={() => handleFilter('status', filters.status==='open'?'':'open')} />
-              <FilterPill label="🔵 Upcoming" active={filters.status==='upcoming'} onClick={() => handleFilter('status', filters.status==='upcoming'?'':'upcoming')} />
-              <FilterPill label="🟡 Ongoing" active={filters.status==='ongoing'} onClick={() => handleFilter('status', filters.status==='ongoing'?'':'ongoing')} />
-            </div>
-
-            {/* More filters */}
-            <button onClick={()=>setShowFilters(!showFilters)} style={{
-              display:'flex', alignItems:'center', gap:7,
-              padding:'9px 16px', borderRadius:10, fontSize:'0.82rem', fontWeight:600,
-              background: showFilters ? 'rgba(91,110,248,0.15)' : 'rgba(255,255,255,0.04)',
-              border: showFilters ? '1px solid rgba(91,110,248,0.3)' : '1px solid rgba(255,255,255,0.08)',
-              color: showFilters ? '#a5b4fc' : 'var(--text-secondary)',
-              cursor:'pointer', transition:'all 0.15s ease',
-            }}>
-              <FiFilter size={13} /> Filters {hasFilters && <span style={{ background:'rgba(91,110,248,0.2)', color:'#a5b4fc', borderRadius:999, padding:'0 6px', fontSize:'0.68rem', fontWeight:700 }}>{Object.values(filters).filter(Boolean).length}</span>}
-            </button>
-
-            {hasFilters && (
-              <button onClick={clearFilters} style={{
-                display:'flex', alignItems:'center', gap:5,
-                padding:'9px 14px', borderRadius:10, fontSize:'0.8rem', fontWeight:600,
-                background:'rgba(251,113,133,0.08)', border:'1px solid rgba(251,113,133,0.2)',
-                color:'var(--accent-rose)', cursor:'pointer', transition:'all 0.15s ease',
-              }}><FiX size={12}/>Clear</button>
-            )}
-          </div>
-
-          {/* Extended filter panel */}
-          {showFilters && (
-            <div style={{
-              marginTop:16, padding:20,
-              background:'rgba(255,255,255,0.03)',
-              border:'1px solid var(--glass-border)',
-              borderRadius:14, display:'flex', gap:32, flexWrap:'wrap',
-            }}>
+        {/* ── Page Hero Header ── */}
+        <div style={{
+          paddingTop: 80, paddingBottom: 36,
+          borderBottom:'1px solid rgba(255,255,255,0.08)',
+          background:'rgba(9, 10, 15, 0.6)', backdropFilter:'blur(16px)',
+        }}>
+          <div className="container" style={{ padding:'0 28px' }}>
+            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, flexWrap:'wrap' }}>
               <div>
-                <label style={{ fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-tertiary)', display:'block', marginBottom:10 }}>Mode</label>
-                <div style={{ display:'flex', gap:6 }}>
-                  {['', 'online', 'offline', 'hybrid'].map(m => (
-                    <FilterPill key={m} label={m===''?'Any':(m.charAt(0).toUpperCase()+m.slice(1))} active={filters.mode===m} onClick={()=>handleFilter('mode',m)} />
+                <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 12px', borderRadius:99, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.16)', color:'#fff', fontSize:'0.72rem', fontWeight:600, marginBottom:12 }}>
+                  🏆 Discover & Compete
+                </div>
+                <h1 style={{ fontFamily:"'Instrument Serif', serif", fontSize:'clamp(2.2rem, 5vw, 3.2rem)', fontWeight:400, letterSpacing:'-0.02em', marginBottom:8, color:'#ffffff', lineHeight:1 }}>
+                  Browse Hackathons
+                </h1>
+                <p style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.95rem', maxWidth:520, lineHeight:1.6, margin:0 }}>
+                  Find your next challenge. Filter by mode, status, and theme to discover open hackathons and prize pools.
+                </p>
+              </div>
+
+              {/* Action Buttons & View toggle */}
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <button
+                  onClick={() => navigate('/hackathons/create')}
+                  style={{
+                    padding:'10px 20px', borderRadius:12, background:'#ffffff', border:'none',
+                    color:'#060709', fontWeight:700, fontSize:'0.85rem', cursor:'pointer',
+                    display:'flex', alignItems:'center', gap:6, boxShadow:'0 4px 18px rgba(255,255,255,0.3)', transition:'all 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                >
+                  <FiPlus size={16} /> Create Hackathon
+                </button>
+
+                <div style={{ display:'flex', gap:4, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:12, padding:4 }}>
+                  {[['grid',<FiGrid size={15}/>],['list',<FiList size={15}/>]].map(([m,icon])=>(
+                    <button key={m} onClick={()=>setViewMode(m)} style={{
+                      width:36, height:36, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
+                      background: viewMode===m ? '#ffffff' : 'transparent',
+                      color: viewMode===m ? '#060709' : 'rgba(255,255,255,0.5)',
+                      border: 'none', cursor:'pointer', transition:'all 0.15s ease',
+                    }}>{icon}</button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label style={{ fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--text-tertiary)', display:'block', marginBottom:10 }}>Theme</label>
-                <input className="input" placeholder="e.g. AI, Web3, Health..." style={{ borderRadius:8, width:200 }}
-                  value={filters.theme} onChange={e => handleFilter('theme', e.target.value)} />
+            </div>
+
+            {/* Search & filter row */}
+            <div style={{ marginTop:28, display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+              {/* Search input */}
+              <div style={{ position:'relative', flex:1, minWidth:260, maxWidth:480 }}>
+                <FiSearch size={15} style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', color:'rgba(255,255,255,0.4)' }} />
+                <input
+                  placeholder="Search hackathons, themes, tags..."
+                  style={{
+                    width:'100%', padding:'10px 14px 10px 40px', borderRadius:12,
+                    background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.14)',
+                    color:'#ffffff', fontSize:'0.88rem', outline:'none', boxSizing:'border-box',
+                    transition:'all 0.2s'
+                  }}
+                  value={filters.search}
+                  onChange={e => handleFilter('search', e.target.value)}
+                />
               </div>
+
+              {/* Quick filter pills */}
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                <FilterPill label="All" active={!filters.status} onClick={() => handleFilter('status','')} />
+                <FilterPill label="🟢 Open" active={filters.status==='open'} onClick={() => handleFilter('status', filters.status==='open'?'':'open')} />
+                <FilterPill label="🔵 Upcoming" active={filters.status==='upcoming'} onClick={() => handleFilter('status', filters.status==='upcoming'?'':'upcoming')} />
+                <FilterPill label="🟡 Ongoing" active={filters.status==='ongoing'} onClick={() => handleFilter('status', filters.status==='ongoing'?'':'ongoing')} />
+              </div>
+
+              {/* More filters button */}
+              <button onClick={()=>setShowFilters(!showFilters)} style={{
+                display:'flex', alignItems:'center', gap:7,
+                padding:'10px 16px', borderRadius:12, fontSize:'0.82rem', fontWeight:600,
+                background: showFilters ? '#ffffff' : 'rgba(255,255,255,0.05)',
+                border: showFilters ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                color: showFilters ? '#060709' : 'rgba(255,255,255,0.7)',
+                cursor:'pointer', transition:'all 0.15s ease',
+              }}>
+                <FiFilter size={13} /> Filters {hasFilters && <span style={{ background:'rgba(255,255,255,0.2)', color: showFilters ? '#060709' : '#fff', borderRadius:999, padding:'1px 6px', fontSize:'0.65rem', fontWeight:700 }}>{Object.values(filters).filter(Boolean).length}</span>}
+              </button>
+
+              {hasFilters && (
+                <button onClick={clearFilters} style={{
+                  display:'flex', alignItems:'center', gap:5,
+                  padding:'10px 14px', borderRadius:12, fontSize:'0.8rem', fontWeight:600,
+                  background:'rgba(251,113,133,0.12)', border:'1px solid rgba(251,113,133,0.28)',
+                  color:'#fb7185', cursor:'pointer', transition:'all 0.15s ease',
+                }}><FiX size={13}/>Clear</button>
+              )}
+            </div>
+
+            {/* Extended filter panel */}
+            {showFilters && (
+              <div className="liquid-glass" style={{
+                marginTop:16, padding:20, borderRadius:18, display:'flex', gap:32, flexWrap:'wrap',
+              }}>
+                <div>
+                  <label style={{ fontSize:'0.65rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:10 }}>Mode</label>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {['', 'online', 'offline', 'hybrid'].map(m => (
+                      <FilterPill key={m} label={m===''?'Any':(m.charAt(0).toUpperCase()+m.slice(1))} active={filters.mode===m} onClick={()=>handleFilter('mode',m)} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize:'0.65rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:10 }}>Theme Keyword</label>
+                  <input placeholder="e.g. AI, Web3, Health..." style={{ padding:'8px 14px', borderRadius:10, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.14)', color:'#fff', fontSize:'0.82rem', outline:'none', width:220 }}
+                    value={filters.theme} onChange={e => handleFilter('theme', e.target.value)} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Content Grid ── */}
+        <div className="container" style={{ paddingTop:36, paddingBottom:80, paddingLeft:28, paddingRight:28 }}>
+          {/* Result count */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+            <span style={{ fontSize:'0.82rem', color:'rgba(255,255,255,0.4)', fontWeight:500 }}>
+              {loading ? 'Loading...' : `${total} hackathon${total!==1?'s':''} found`}
+            </span>
+          </div>
+
+          {/* Grid / List */}
+          {loading ? (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
+              {[...Array(6)].map((_,i) => <SkeletonCard key={i} />)}
+            </div>
+          ) : hackathons.length === 0 ? (
+            <div className="liquid-glass" style={{ padding:54, textAlign:'center', borderRadius:24 }}>
+              <div style={{ fontSize:'2.5rem', marginBottom:12 }}>🔍</div>
+              <div style={{ fontWeight:700, fontSize:'1.1rem', marginBottom:6 }}>No hackathons found</div>
+              <div style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.45)', marginBottom:20 }}>Try adjusting your search terms or filters</div>
+              <button onClick={clearFilters} style={{ padding:'9px 20px', borderRadius:10, background:'#ffffff', border:'none', color:'#060709', fontWeight:700, cursor:'pointer' }}>
+                Clear all filters
+              </button>
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
+              {hackathons.map(h => <HackathonCard key={h._id} h={h} />)}
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {hackathons.map(h => <HackathonListRow key={h._id} h={h} />)}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {pages > 1 && (
+            <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:48, flexWrap:'wrap' }}>
+              {[...Array(pages)].map((_,i) => (
+                <button key={i} onClick={() => setPage(i+1)} style={{
+                  width:38, height:38, borderRadius:10,
+                  background: page===i+1 ? '#ffffff' : 'rgba(255,255,255,0.05)',
+                  border: page===i+1 ? 'none' : '1px solid rgba(255,255,255,0.12)',
+                  color: page===i+1 ? '#060709' : 'rgba(255,255,255,0.7)',
+                  fontSize:'0.85rem', fontWeight:700, cursor:'pointer', transition:'all 0.15s ease',
+                }}>{i+1}</button>
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* ── Content ── */}
-      <div className="container" style={{ paddingTop:40, paddingBottom:80 }}>
-        {/* Result count */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
-          <span style={{ fontSize:'0.82rem', color:'var(--text-tertiary)', fontWeight:500 }}>
-            {loading ? 'Loading...' : `${total} hackathon${total!==1?'s':''} found`}
-          </span>
-        </div>
-
-        {/* Grid / List */}
-        {loading ? (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:20 }}>
-            {[...Array(6)].map((_,i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : hackathons.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">🔍</div>
-            <div className="empty-title">No hackathons found</div>
-            <div className="empty-subtitle">Try different filters or search terms</div>
-            <button onClick={clearFilters} className="btn-glass btn-sm">Clear all filters</button>
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:20 }}>
-            {hackathons.map(h => <HackathonCard key={h._id} h={h} />)}
-          </div>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            {hackathons.map(h => <HackathonListRow key={h._id} h={h} />)}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pages > 1 && (
-          <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:48, flexWrap:'wrap' }}>
-            {[...Array(pages)].map((_,i) => (
-              <button key={i} onClick={() => setPage(i+1)} style={{
-                width:38, height:38, borderRadius:8,
-                background: page===i+1 ? 'rgba(91,110,248,0.2)' : 'rgba(255,255,255,0.04)',
-                border: page===i+1 ? '1px solid rgba(91,110,248,0.4)' : '1px solid rgba(255,255,255,0.08)',
-                color: page===i+1 ? '#a5b4fc' : 'var(--text-secondary)',
-                fontSize:'0.85rem', fontWeight:700, cursor:'pointer', transition:'all 0.15s ease',
-              }}>{i+1}</button>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/* ── Hackathon Card (Grid view) ── */
+/* ── Modern Animated Hackathon Card (Grid view) ── */
 function HackathonCard({ h }) {
   return (
-    <div style={{
-      background:'var(--glass-bg)',
-      border:'1px solid var(--glass-border)',
-      borderRadius:16, overflow:'hidden',
-      transition:'all 0.25s ease',
-      display:'flex', flexDirection:'column',
-    }}
-    onMouseEnter={e=>{
-      e.currentTarget.style.border='1px solid rgba(91,110,248,0.25)';
-      e.currentTarget.style.transform='translateY(-3px)';
-      e.currentTarget.style.boxShadow='0 12px 36px rgba(0,0,0,0.5)';
-    }}
-    onMouseLeave={e=>{
-      e.currentTarget.style.border='1px solid var(--glass-border)';
-      e.currentTarget.style.transform='none';
-      e.currentTarget.style.boxShadow='none';
-    }}
+    <div
+      className="liquid-glass"
+      style={{
+        borderRadius: 22, overflow: 'hidden',
+        transition: 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease',
+        display: 'flex', flexDirection: 'column', position: 'relative'
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+        e.currentTarget.style.boxShadow = '0 16px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.2)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
     >
-      {/* Banner */}
+      {/* Card Header Banner */}
       <div style={{
-        height:160, position:'relative', overflow:'hidden',
-        background:'linear-gradient(135deg, rgba(91,110,248,0.15) 0%, rgba(167,139,250,0.1) 100%)',
-        display:'flex', alignItems:'center', justifyContent:'center',
-        backgroundImage:`url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        height: 160, position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
       }}>
-        {h.banner
-          ? <img src={h.banner} alt={h.title} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
-          : <span style={{ fontSize:'2.5rem', filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}>🏆</span>
+        {h.bannerUrl
+          ? <img src={h.bannerUrl} alt={h.title} style={{ width:'100%', height:'100%', objectFit:'cover', position:'absolute', inset:0 }} />
+          : <span style={{ fontSize: '3rem', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }}>🏆</span>
         }
+        
         {/* Status overlay */}
-        <div style={{ position:'absolute', top:12, left:12 }}>
+        <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 2 }}>
           <StatusBadge status={h.status} />
         </div>
+
+        {/* Prize Pool Badge */}
         {h.prizePool && (
-          <div style={{ position:'absolute', top:12, right:12, background:'rgba(5,5,7,0.8)', border:'1px solid rgba(251,191,36,0.3)', borderRadius:8, padding:'4px 10px', display:'flex', alignItems:'center', gap:5 }}>
-            <FiAward size={11} style={{ color:'#fbbf24' }} />
-            <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#fbbf24' }}>{h.prizePool}</span>
+          <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 2, background: 'rgba(5,5,7,0.85)', backdropFilter: 'blur(8px)', border: '1px solid rgba(251,191,36,0.38)', borderRadius: 10, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FiAward size={13} style={{ color: '#fbbf24' }} />
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#fbbf24' }}>{h.prizePool}</span>
           </div>
         )}
       </div>
 
-      {/* Body */}
-      <div style={{ padding:20, flex:1, display:'flex', flexDirection:'column' }}>
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
+      {/* Card Body */}
+      <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           <ModeBadge mode={h.mode} />
           {h.theme && (
-            <span style={{ background:'rgba(255,255,255,0.04)', color:'var(--text-tertiary)', border:'1px solid var(--glass-border)', padding:'3px 10px', borderRadius:999, fontSize:'0.7rem', fontWeight:600 }}>
+            <span style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.65)', border: '1px solid rgba(255,255,255,0.12)', padding: '4px 11px', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
               {h.theme}
             </span>
           )}
         </div>
 
-        <h3 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'1rem', marginBottom:8, color:'var(--text-primary)', lineHeight:1.3, letterSpacing:'-0.01em' }}>
+        <h3 style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: '1.25rem', marginBottom: 10, color: '#ffffff', lineHeight: 1.25, letterSpacing: '-0.01em' }}>
           {h.title}
         </h3>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:'auto', paddingBottom:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:'0.78rem', color:'var(--text-tertiary)' }}>
-            <FiCalendar size={12} style={{ flexShrink:0 }} />
-            {new Date(h.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} – {new Date(h.endDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 18, marginTop: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>
+            <FiCalendar size={13} style={{ flexShrink: 0 }} />
+            {new Date(h.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – {new Date(h.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </div>
           {h.maxTeamSize && (
-            <div style={{ display:'flex', alignItems:'center', gap:7, fontSize:'0.78rem', color:'var(--text-tertiary)' }}>
-              <FiUsers size={12} style={{ flexShrink:0 }} /> Up to {h.maxTeamSize} members per team
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>
+              <FiUsers size={13} style={{ flexShrink: 0 }} /> Up to {h.maxTeamSize} members per team
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div style={{ display:'flex', gap:8, paddingTop:16, borderTop:'1px solid var(--glass-border)' }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: 10, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <Link to={`/hackathons/${h._id}`} style={{
-            flex:1, padding:'8px', borderRadius:8, fontSize:'0.8rem', fontWeight:600,
-            background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)',
-            color:'var(--text-secondary)', textDecoration:'none', textAlign:'center',
-            transition:'all 0.15s ease', display:'flex', alignItems:'center', justifyContent:'center',
+            flex: 1, padding: '9px 12px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 600,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+            color: '#ffffff', textDecoration: 'none', textAlign: 'center',
+            transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center'
           }}
-          onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='var(--text-primary)';}}
-          onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.color='var(--text-secondary)';}}
-          >Details</Link>
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+          >
+            Details
+          </Link>
+          
           {h.status === 'open' && (
             <Link to={`/hackathons/${h._id}`} style={{
-              flex:1, padding:'8px', borderRadius:8, fontSize:'0.8rem', fontWeight:700,
-              background:'linear-gradient(135deg,#5b6ef8,#7f8fff)',
-              color:'#fff', textDecoration:'none', textAlign:'center',
-              transition:'all 0.15s ease', display:'flex', alignItems:'center', justifyContent:'center', gap:5,
-              boxShadow:'0 3px 12px rgba(91,110,248,0.35)',
+              flex: 1.3, padding: '9px 12px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+              background: '#ffffff', color: '#060709', textDecoration: 'none', textAlign: 'center',
+              transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              boxShadow: '0 4px 14px rgba(255,255,255,0.3)',
             }}
-            onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 5px 18px rgba(91,110,248,0.55)';e.currentTarget.style.transform='translateY(-1px)';}}
-            onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 3px 12px rgba(91,110,248,0.35)';e.currentTarget.style.transform='none';}}
-            >Register <FiChevronRight size={13}/></Link>
+            onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}
+            >
+              Register <FiChevronRight size={14} />
+            </Link>
           )}
         </div>
       </div>
@@ -392,53 +426,58 @@ function HackathonCard({ h }) {
   );
 }
 
-/* ── Hackathon List Row (List view) ── */
+/* ── Modern Hackathon List Row (List view) ── */
 function HackathonListRow({ h }) {
   return (
-    <div style={{
-      background:'var(--glass-bg)', border:'1px solid var(--glass-border)', borderRadius:14,
-      padding:'20px 24px', display:'flex', alignItems:'center', gap:20, flexWrap:'wrap',
-      transition:'all 0.2s ease',
-    }}
-    onMouseEnter={e=>{e.currentTarget.style.border='1px solid rgba(91,110,248,0.2)';e.currentTarget.style.background='rgba(255,255,255,0.05)';}}
-    onMouseLeave={e=>{e.currentTarget.style.border='1px solid var(--glass-border)';e.currentTarget.style.background='var(--glass-bg)';}}
+    <div
+      className="liquid-glass"
+      style={{
+        borderRadius: 18, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
+        transition: 'all 0.2s ease',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
     >
-      <div style={{ width:52, height:52, borderRadius:12, background:'linear-gradient(135deg,rgba(91,110,248,0.2),rgba(167,139,250,0.15))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.6rem', flexShrink:0 }}>
+      <div style={{ width: 54, height: 54, borderRadius: 14, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0 }}>
         🏆
       </div>
-      <div style={{ flex:1, minWidth:200 }}>
-        <div style={{ display:'flex', gap:6, marginBottom:6, flexWrap:'wrap' }}>
+      
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
           <StatusBadge status={h.status} />
           <ModeBadge mode={h.mode} />
         </div>
-        <h3 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'0.95rem', color:'var(--text-primary)', letterSpacing:'-0.01em' }}>{h.title}</h3>
-        <div style={{ display:'flex', gap:16, marginTop:5, flexWrap:'wrap' }}>
-          <span style={{ fontSize:'0.75rem', color:'var(--text-tertiary)', display:'flex', alignItems:'center', gap:5 }}>
-            <FiCalendar size={11}/> {new Date(h.startDate).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}
+        
+        <h3 style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400, fontSize: '1.3rem', color: '#ffffff', letterSpacing: '-0.01em', margin: '0 0 6px 0' }}>
+          {h.title}
+        </h3>
+        
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <FiCalendar size={12}/> {new Date(h.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – {new Date(h.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
-          {h.maxTeamSize && <span style={{ fontSize:'0.75rem', color:'var(--text-tertiary)', display:'flex', alignItems:'center', gap:5 }}><FiUsers size={11}/> {h.maxTeamSize} max</span>}
-          {h.prizePool && <span style={{ fontSize:'0.75rem', color:'#fbbf24', display:'flex', alignItems:'center', gap:5 }}><FiAward size={11}/> {h.prizePool}</span>}
+          {h.maxTeamSize && <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 5 }}><FiUsers size={12}/> {h.maxTeamSize} max</span>}
+          {h.prizePool && <span style={{ fontSize: '0.78rem', color: '#fbbf24', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}><FiAward size={12}/> {h.prizePool}</span>}
         </div>
       </div>
-      <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+
+      <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
         <Link to={`/hackathons/${h._id}`} style={{
-          padding:'8px 18px', borderRadius:8, fontSize:'0.8rem', fontWeight:600,
-          background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)',
-          color:'var(--text-secondary)', textDecoration:'none', transition:'all 0.15s ease',
-        }}
-        onMouseEnter={e=>{e.currentTarget.style.color='var(--text-primary)';e.currentTarget.style.background='rgba(255,255,255,0.1)';}}
-        onMouseLeave={e=>{e.currentTarget.style.color='var(--text-secondary)';e.currentTarget.style.background='rgba(255,255,255,0.05)';}}
-        >View</Link>
-        {h.status==='open' && (
+          padding: '9px 18px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 600,
+          background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+          color: '#ffffff', textDecoration: 'none', transition: 'all 0.15s ease',
+        }}>
+          View
+        </Link>
+        {h.status === 'open' && (
           <Link to={`/hackathons/${h._id}`} style={{
-            padding:'8px 18px', borderRadius:8, fontSize:'0.8rem', fontWeight:700,
-            background:'linear-gradient(135deg,#5b6ef8,#7f8fff)', color:'#fff',
-            textDecoration:'none', boxShadow:'0 3px 10px rgba(91,110,248,0.35)', transition:'all 0.15s ease',
-            display:'flex', alignItems:'center', gap:5,
-          }}
-          onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 5px 18px rgba(91,110,248,0.5)';}}
-          onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 3px 10px rgba(91,110,248,0.35)';}}
-          >Register <FiChevronRight size={13}/></Link>
+            padding: '9px 20px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+            background: '#ffffff', color: '#060709', textDecoration: 'none',
+            boxShadow: '0 4px 14px rgba(255,255,255,0.3)', transition: 'all 0.15s ease',
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}>
+            Register <FiChevronRight size={14} />
+          </Link>
         )}
       </div>
     </div>
