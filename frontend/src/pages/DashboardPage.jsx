@@ -1186,9 +1186,6 @@ function OrganizerDash() {
     </div>
   );
 }
-    </div>
-  );
-}
 
 /* ── Sparkline mini chart helper ── */
 function Sparkline({ data, color = '#8b5cf6', width = 130, height = 45, id }) {
