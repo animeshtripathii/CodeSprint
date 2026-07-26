@@ -13,7 +13,7 @@ export default function JudgeDash() {
 
   const [hackathons, setHackathons]     = useState([]);
   const [selectedHack, setSelectedHack] = useState(null);
-  const [submissions, setSubmissions]   = useState([]);
+  const [allSubmissions, setAllSubmissions] = useState([]);
   const [selectedSub, setSelectedSub]   = useState(null);
   const [loading, setLoading]           = useState(true);
   const [activeTab, setActiveTab]       = useState('pending'); // pending | reviewed
@@ -22,28 +22,25 @@ export default function JudgeDash() {
 
   useEffect(() => {
     setLoading(true);
-    api.get('/judge/hackathons')
+    api.get('/dashboard/judge')
       .then(r => {
-        const list = r.data.data || [];
-        setHackathons(list);
-        if (list.length > 0) setSelectedHack(list[0]);
-        else setLoading(false);
+        const d = r.data.data || {};
+        const hList = d.hackathons || [];
+        const sList = d.submissions || [];
+        setHackathons(hList);
+        setAllSubmissions(sList);
+
+        if (hList.length > 0) setSelectedHack(hList[0]);
+        if (sList.length > 0) setSelectedSub(sList[0]);
+        setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!selectedHack) return;
-    setLoading(true);
-    api.get(`/judge/hackathons/${selectedHack._id}/submissions`)
-      .then(r => {
-        const list = r.data.data || [];
-        setSubmissions(list);
-        if (list.length > 0) setSelectedSub(list[0]);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [selectedHack]);
+  // Filter submissions for the currently selected hackathon (or all)
+  const submissions = selectedHack
+    ? allSubmissions.filter(s => (s.hackathon?._id || s.hackathon) === selectedHack._id)
+    : allSubmissions;
 
   const pendingSubs  = submissions.filter(s => !s.reviewed);
   const reviewedSubs = submissions.filter(s => s.reviewed);
@@ -78,8 +75,6 @@ export default function JudgeDash() {
     [3, 5, 4, 6, 5.5, 7, 6.8, 7.5, 7.2],
   ];
 
-  const hueOf = (str = 'P') => (str.charCodeAt(0) * 5) % 360;
-
   return (
     <div style={{ position: 'relative', display: 'flex', height: '100vh', overflow: 'hidden', background: '#050507', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
@@ -100,6 +95,29 @@ export default function JudgeDash() {
           </Link>
         </div>
 
+        {/* Hackathon Selector */}
+        {hackathons.length > 0 && (
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontWeight: 700 }}>
+              Assigned Hackathon
+            </div>
+            <select
+              value={selectedHack?._id || ''}
+              onChange={e => {
+                const found = hackathons.find(h => h._id === e.target.value);
+                if (found) setSelectedHack(found);
+              }}
+              style={{ width: '100%', padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', outline: 'none' }}
+            >
+              {hackathons.map(h => (
+                <option key={h._id} value={h._id} style={{ background: '#090a0f', color: '#fff' }}>
+                  {h.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Tabs: Pending / Reviewed */}
         <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 3 }}>
@@ -119,7 +137,7 @@ export default function JudgeDash() {
         <div style={{ padding: '8px 10px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           {navItems.map(n => (
             <button key={n.id} onClick={() => { setActiveNav(n.id); if (n.id === 'submissions' && hackathons[0]) navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`); }} style={{
-              width: '100%', padding: '9px 10px', borderRadius: 10, border: 'none',
+              width: '100%', padding: '8px 10px', borderRadius: 10, border: 'none',
               background: activeNav === n.id ? 'rgba(255,255,255,0.12)' : 'transparent',
               borderLeft: `2px solid ${activeNav === n.id ? '#ffffff' : 'transparent'}`,
               color: activeNav === n.id ? '#ffffff' : 'rgba(255,255,255,0.42)',
@@ -145,7 +163,7 @@ export default function JudgeDash() {
             <div style={{ padding: '16px 8px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.28)', textAlign: 'center' }}>
               {activeTab === 'pending' ? '🎉 All caught up!' : 'No reviews yet'}
             </div>
-          ) : sidebarSubs.slice(0, 10).map(s => (
+          ) : sidebarSubs.map(s => (
             <button key={s._id} onClick={() => setSelectedSub(s)} style={{
               width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid', cursor: 'pointer', marginBottom: 4, textAlign: 'left', transition: 'all 0.15s',
               background: selectedSub?._id === s._id ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.02)',
@@ -179,7 +197,7 @@ export default function JudgeDash() {
 
           {/* User profile & logout */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, cursor: 'pointer' }} onClick={() => navigate('/profile')}>
               <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0 }}>
                 {user?.name?.[0]?.toUpperCase() || 'J'}
               </div>
@@ -206,7 +224,7 @@ export default function JudgeDash() {
         <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(9, 10, 15, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', position: 'sticky', top: 0, zIndex: 20, flexWrap: 'wrap', gap: 10 }}>
           <div>
             <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', marginBottom: 2 }}>
-              Recommended for Review · <span style={{ color: '#fbbf24' }}>{loading ? '…' : `${pending} Pending`}</span>
+              {selectedHack ? selectedHack.title : 'Assigned Hackathons'} · <span style={{ color: '#fbbf24' }}>{loading ? '…' : `${pending} Pending`}</span>
             </div>
             <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.45rem', lineHeight: 1 }}>Top Submissions</div>
           </div>
@@ -219,7 +237,7 @@ export default function JudgeDash() {
                 fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
               }}>{f}</button>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '6px 12px', cursor: 'pointer' }} onClick={() => navigate('/profile')}>
               <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem' }}>⚖️</div>
               <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{user?.name?.split(' ')[0] || 'Judge'}</span>
             </div>

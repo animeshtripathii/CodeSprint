@@ -32,7 +32,7 @@ router.get('/admin', protect, authorize('admin'), asyncHandler(async (req, res) 
 router.get('/organizer', protect, authorize('organizer', 'admin'), asyncHandler(async (req, res) => {
   const hackathons = await Hackathon.find({ organizer: req.user._id })
     .select('title status startDate endDate registrationDeadline prizePool theme mode tags judges')
-    .populate('judges', 'name email');
+    .populate('judges', 'name email avatar role');
 
   const hackathonIds = hackathons.map((h) => h._id);
 
@@ -72,7 +72,7 @@ router.get('/organizer', protect, authorize('organizer', 'admin'), asyncHandler(
 /**
  * GET /api/dashboard/participant
  */
-router.get('/participant', protect, authorize('participant'), asyncHandler(async (req, res) => {
+router.get('/participant', protect, authorize('participant', 'organizer', 'judge', 'admin'), asyncHandler(async (req, res) => {
   const [registrations, teams] = await Promise.all([
     Registration.find({ participant: req.user._id }).populate('hackathon', 'title status startDate endDate banner'),
     Team.find({ members: req.user._id }).populate('hackathon', 'title status'),
@@ -85,38 +85,38 @@ router.get('/participant', protect, authorize('participant'), asyncHandler(async
 /**
  * GET /api/dashboard/judge
  */
-router.get('/judge', protect, authorize('judge'), asyncHandler(async (req, res) => {
-  const hackathons = await Hackathon.find({ judges: req.user._id })
-    .select('title status startDate endDate theme judgingCriteria');
+router.get('/judge', protect, authorize('judge', 'organizer', 'admin'), asyncHandler(async (req, res) => {
+  const hackathons = await Hackathon.find({
+    $or: [
+      { judges: req.user._id },
+      { organizer: req.user._id }
+    ]
+  }).select('title status startDate endDate theme judgingCriteria banner');
+
   const hackathonIds = hackathons.map((h) => h._id);
 
-  // Get all submissions for these hackathons, with team info
   const submissions = await Submission.find({ hackathon: { $in: hackathonIds } })
-    .select('projectName problemStatement techStack status hackathon team')
+    .select('projectName problemStatement techStack status hackathon team repoUrl demoUrl')
     .populate('team', 'name');
 
-  // Get judge's reviews for these submissions
   const submissionIds = submissions.map(s => s._id);
   const myReviews = await Review.find({ judge: req.user._id, submission: { $in: submissionIds } })
-    .select('submission totalScore');
+    .select('submission totalScore scores comments');
 
-  const reviewedSet = new Map(myReviews.map(r => [r.submission.toString(), r.totalScore]));
+  const reviewedMap = new Map(myReviews.map(r => [r.submission.toString(), r.totalScore]));
 
   const submissionsWithStatus = submissions.map(s => ({
     ...s.toObject(),
-    reviewed: reviewedSet.has(s._id.toString()),
-    myScore: reviewedSet.get(s._id.toString()) ?? null,
+    reviewed: reviewedMap.has(s._id.toString()),
+    myScore: reviewedMap.get(s._id.toString()) ?? null,
   }));
-
-  const totalSubmissions = submissions.length;
-  const completedReviews = myReviews.length;
 
   return res.status(200).json(new ApiResponse(200, {
     hackathons,
     submissions: submissionsWithStatus,
-    totalSubmissions,
-    completedReviews,
-    pendingReviews: totalSubmissions - completedReviews,
+    totalSubmissions: submissions.length,
+    completedReviews: myReviews.length,
+    pendingReviews: submissions.length - myReviews.length,
   }, 'Judge dashboard'));
 }));
 
