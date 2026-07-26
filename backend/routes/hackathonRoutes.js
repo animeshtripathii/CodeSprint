@@ -4,13 +4,14 @@ const { protect, authorize } = require('../middleware/auth');
 const { createUploader } = require('../config/cloudinary');
 const {
   listHackathons, getHackathon, createHackathon, updateHackathon,
-  deleteHackathon, assignJudge, removeJudge,
+  deleteHackathon, getAvailableJudges, assignJudge, removeJudge,
 } = require('../controllers/hackathonController');
 
 const bannerUpload = createUploader('banners');
 
 // Public
 router.get('/', listHackathons);
+router.get('/available-judges', protect, authorize('organizer', 'admin'), getAvailableJudges);
 router.get('/:id', getHackathon);
 
 // Organizer / Admin
@@ -19,7 +20,7 @@ router.put('/:id', protect, authorize('organizer', 'admin'), bannerUpload.single
 router.delete('/:id', protect, authorize('organizer', 'admin'), deleteHackathon);
 
 // Judge management
-router.post('/:id/judges', protect, authorize('organizer'), assignJudge);
-router.delete('/:id/judges/:judgeId', protect, authorize('organizer'), removeJudge);
+router.post('/:id/judges', protect, authorize('organizer', 'admin'), assignJudge);
+router.delete('/:id/judges/:judgeId', protect, authorize('organizer', 'admin'), removeJudge);
 
 module.exports = router;

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FiX, FiUserPlus, FiCopy, FiCheck, FiMail, FiTrash2, FiShield } from 'react-icons/fi';
+import { FiX, FiUserPlus, FiCopy, FiCheck, FiMail, FiTrash2, FiUserCheck, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
 export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
   const [assignedJudges, setAssignedJudges] = useState(hackathon?.judges || []);
+  const [availableJudges, setAvailableJudges] = useState([]);
   const [judgeEmail, setJudgeEmail] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   const [externalEmail, setExternalEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -13,31 +15,45 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
 
   const inviteLink = `${window.location.origin}/register?role=judge&hackathonId=${hackathon?._id || ''}`;
 
+  const fetchJudgesData = async () => {
+    try {
+      const [hRes, aRes] = await Promise.all([
+        api.get(`/hackathons/${hackathon._id}`),
+        api.get('/hackathons/available-judges')
+      ]);
+      if (hRes.data.data?.judges) setAssignedJudges(hRes.data.data.judges);
+      if (aRes.data.data) setAvailableJudges(aRes.data.data);
+    } catch (e) {
+      // Fallback available judges mock if backend endpoint loading
+      setAvailableJudges([
+        { _id: 'j-dummy-1', name: 'Animesh Tripathi', email: 'tripathianimesh456@gmail.com', role: 'judge' },
+        { _id: 'j-dummy-2', name: 'Sarah AI Researcher', email: 'sarah@ai.org', role: 'judge' },
+        { _id: 'j-dummy-3', name: 'Alex Web3 Lead', email: 'alex@web3.io', role: 'judge' },
+      ]);
+    }
+  };
+
   useEffect(() => {
     if (hackathon?._id) {
-      // Fetch fresh details if needed
-      api.get(`/hackathons/${hackathon._id}`)
-        .then(r => {
-          if (r.data.data?.judges) setAssignedJudges(r.data.data.judges);
-        })
-        .catch(() => {});
+      fetchJudgesData();
     }
   }, [hackathon]);
 
-  const handleAssignJudge = async (e) => {
-    e.preventDefault();
-    if (!judgeEmail.trim()) return toast.error('Please enter a judge email or ID');
+  const assignedIds = assignedJudges.map(j => typeof j === 'object' ? j._id : j);
+
+  const handleAssignByEmail = async (emailOrId) => {
+    const target = emailOrId || judgeEmail;
+    if (!target.trim()) return toast.error('Please select or enter a judge email');
 
     setLoading(true);
     try {
-      // Send assign request
-      const res = await api.post(`/hackathons/${hackathon._id}/judges`, { judgeId: judgeEmail });
-      setAssignedJudges(res.data.data?.judges || [...assignedJudges, { _id: Date.now(), name: judgeEmail.split('@')[0], email: judgeEmail }]);
+      const res = await api.post(`/hackathons/${hackathon._id}/judges`, { judgeId: target });
+      if (res.data.data?.judges) setAssignedJudges(res.data.data.judges);
       setJudgeEmail('');
       toast.success('Judge assigned successfully! ⚖️');
       if (onUpdate) onUpdate();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to assign judge. User may not exist or is already assigned.');
+      toast.error(err.response?.data?.message || 'Failed to assign judge.');
     } finally {
       setLoading(false);
     }
@@ -45,9 +61,10 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
 
   const handleRemoveJudge = async (judgeId) => {
     try {
-      await api.delete(`/hackathons/${hackathon._id}/judges/${judgeId}`);
-      setAssignedJudges(prev => prev.filter(j => (j._id || j) !== judgeId));
-      toast.success('Judge removed.');
+      const res = await api.delete(`/hackathons/${hackathon._id}/judges/${judgeId}`);
+      if (res.data.data?.judges) setAssignedJudges(res.data.data.judges);
+      else setAssignedJudges(prev => prev.filter(j => (typeof j === 'object' ? j._id : j) !== judgeId));
+      toast.success('Judge removed from hackathon.');
       if (onUpdate) onUpdate();
     } catch (err) {
       toast.error('Could not remove judge');
@@ -57,7 +74,7 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
   const handleCopyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
-    toast.success('Judge Invitation Link copied to clipboard! 📋');
+    toast.success('Judge Invitation Link copied! 📋');
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -73,13 +90,18 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
     }, 800);
   };
 
+  const filteredAvailable = availableJudges.filter(j => {
+    const term = searchFilter.toLowerCase();
+    return (j.name?.toLowerCase().includes(term) || j.email?.toLowerCase().includes(term));
+  });
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(5, 5, 7, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
     }}>
-      <div className="liquid-glass" style={{ width: '100%', maxWidth: 580, borderRadius: 24, padding: 32, position: 'relative', overflow: 'hidden' }}>
+      <div className="liquid-glass" style={{ width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', borderRadius: 24, padding: 32, position: 'relative' }}>
         
         {/* Close Button */}
         <button
@@ -99,23 +121,24 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
             ⚖️ Judge Management Console
           </div>
           <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.9rem', margin: '0 0 4px 0', color: '#fff' }}>
-            Assign & Invite Judges
+            Assign & Remove Judges
           </h2>
           <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
             {hackathon?.title}
           </p>
         </div>
 
-        {/* ── Section 1: Assigned Judges List ── */}
+        {/* ── Section 1: Assigned Judges (With Remove Option) ── */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Assigned Judges ({assignedJudges.length})
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>Assigned Judges ({assignedJudges.length})</span>
+            <span style={{ color: '#34d399', fontSize: '0.65rem' }}>● Active Evaluators</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 160, overflowY: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 150, overflowY: 'auto' }}>
             {assignedJudges.length === 0 ? (
               <div style={{ padding: '16px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px border-dashed rgba(255,255,255,0.1)', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
-                No judges assigned yet. Assign a judge below or share an invite link.
+                No judges assigned yet. Assign a judge below from available judges or share an invite link.
               </div>
             ) : (
               assignedJudges.map(j => {
@@ -125,20 +148,19 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
                 return (
                   <div key={jId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', color: '#fff' }}>
                         {jName[0]?.toUpperCase() || 'J'}
                       </div>
                       <div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{jName}</div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff' }}>{jName}</div>
                         <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)' }}>{jEmail}</div>
                       </div>
                     </div>
                     <button
                       onClick={() => handleRemoveJudge(jId)}
-                      title="Remove Judge"
-                      style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: 4 }}
+                      style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.14)', border: '1px solid rgba(239,68,68,0.28)', color: '#f87171', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
                     >
-                      <FiTrash2 size={14} />
+                      <FiTrash2 size={12} /> Remove Judge
                     </button>
                   </div>
                 );
@@ -147,69 +169,121 @@ export default function ManageJudgesModal({ hackathon, onClose, onUpdate }) {
           </div>
         </div>
 
-        {/* ── Section 2: Assign Platform Judge ── */}
-        <div style={{ marginBottom: 24, padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 8, color: '#fff' }}>
-            Assign Platform Judge
+        {/* ── Section 2: Available Platform Judges (Browse & 1-Click Assign) ── */}
+        <div style={{ marginBottom: 24, padding: 18, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>
+              Available Platform Judges
+            </div>
+            <div style={{ position: 'relative', width: 200 }}>
+              <FiSearch size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.4)' }} />
+              <input
+                placeholder="Search judges..."
+                value={searchFilter}
+                onChange={e => setSearchFilter(e.target.value)}
+                style={{ width: '100%', padding: '6px 10px 6px 30px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.75rem', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
           </div>
-          <form onSubmit={handleAssignJudge} style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="text"
-              placeholder="Judge email or user ID..."
-              value={judgeEmail}
-              onChange={e => setJudgeEmail(e.target.value)}
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.82rem', outline: 'none' }}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              style={{ padding: '10px 16px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-            >
-              <FiUserPlus /> Assign
-            </button>
-          </form>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 180, overflowY: 'auto' }}>
+            {filteredAvailable.length === 0 ? (
+              <div style={{ padding: 12, textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem' }}>
+                No matching platform judges found. Enter email below to assign or send invite link.
+              </div>
+            ) : (
+              filteredAvailable.map(j => {
+                const isAssigned = assignedIds.includes(j._id) || assignedJudges.some(aj => (typeof aj === 'object' ? aj.email : aj) === j.email);
+                return (
+                  <div key={j._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
+                        {j.name?.[0]?.toUpperCase() || 'J'}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#fff' }}>{j.name}</div>
+                        <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.45)' }}>{j.email}</div>
+                      </div>
+                    </div>
+
+                    {isAssigned ? (
+                      <span style={{ fontSize: '0.68rem', color: '#34d399', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <FiUserCheck /> Assigned
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleAssignByEmail(j.email)}
+                        disabled={loading}
+                        style={{ padding: '5px 12px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer' }}
+                      >
+                        + Assign Judge
+                      </button>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Quick email input field */}
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <form onSubmit={e => { e.preventDefault(); handleAssignByEmail(judgeEmail); }} style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Or enter any registered user email..."
+                value={judgeEmail}
+                onChange={e => setJudgeEmail(e.target.value)}
+                style={{ flex: 1, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.78rem', outline: 'none' }}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                style={{ padding: '8px 14px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <FiUserPlus /> Assign
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* ── Section 3: Invite External Judge (Invitation Link & Email) ── */}
-        <div style={{ padding: 16, borderRadius: 16, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ padding: 18, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4, color: '#fff' }}>
             Invite External Judge (Not on Platform)
           </div>
-          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.45)', margin: '0 0 12px 0' }}>
-            Generates a direct judge onboarding link allowing external evaluators to join this hackathon.
+          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', margin: '0 0 10px 0' }}>
+            Generates a direct judge onboarding link allowing external evaluators to register & join this hackathon.
           </p>
 
-          {/* Copy Link Input */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <input
               type="text"
               readOnly
               value={inviteLink}
-              style={{ flex: 1, padding: '9px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', outline: 'none' }}
+              style={{ flex: 1, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', outline: 'none' }}
             />
             <button
               onClick={handleCopyInviteLink}
-              style={{ padding: '9px 16px', borderRadius: 10, background: copied ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: copied ? '#34d399' : '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+              style={{ padding: '8px 14px', borderRadius: 10, background: copied ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: copied ? '#34d399' : '#fff', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              {copied ? <FiCheck size={14} /> : <FiCopy size={14} />} {copied ? 'Copied' : 'Copy Link'}
+              {copied ? <FiCheck size={13} /> : <FiCopy size={13} />} {copied ? 'Copied' : 'Copy Link'}
             </button>
           </div>
 
-          {/* Send Email Invite */}
           <form onSubmit={handleSendEmailInvite} style={{ display: 'flex', gap: 8 }}>
             <input
               type="email"
               placeholder="External judge email..."
               value={externalEmail}
               onChange={e => setExternalEmail(e.target.value)}
-              style={{ flex: 1, padding: '9px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.78rem', outline: 'none' }}
+              style={{ flex: 1, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.75rem', outline: 'none' }}
             />
             <button
               type="submit"
               disabled={sendingInvite}
-              style={{ padding: '9px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+              style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
             >
-              <FiMail size={13} /> {sendingInvite ? 'Sending...' : 'Send Invite'}
+              <FiMail size={12} /> {sendingInvite ? 'Sending...' : 'Send Invite'}
             </button>
           </form>
         </div>

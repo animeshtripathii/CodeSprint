@@ -70,6 +70,14 @@ const deleteHackathon = async (id, userId, userRole) => {
   return hackathon;
 };
 
+const getAvailableJudges = async () => {
+  const judges = await User.find({})
+    .select('name email avatar role organization bio')
+    .sort({ role: 1, createdAt: -1 })
+    .limit(30);
+  return judges;
+};
+
 const assignJudge = async (hackathonId, judgeIdentifier, organizerId) => {
   const hackathon = await Hackathon.findById(hackathonId);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
@@ -120,5 +128,5 @@ const removeJudge = async (hackathonId, judgeId, organizerId) => {
 
 module.exports = {
   listHackathons, getHackathonById, createHackathon,
-  updateHackathon, deleteHackathon, assignJudge, removeJudge,
+  updateHackathon, deleteHackathon, getAvailableJudges, assignJudge, removeJudge,
 };
