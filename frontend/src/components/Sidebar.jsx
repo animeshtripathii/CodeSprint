@@ -1,20 +1,28 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutGrid,
-  Users,
-  FolderGit2,
-  Kanban,
+  Trophy,
   Plus,
   Sparkles,
   Zap,
-  Bell,
-  User,
+  Users,
+  FolderGit2,
+  Kanban,
+  Award,
+  FileText,
+  CheckSquare,
+  Bot,
+  Megaphone,
+  Search,
+  Shield,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Sliders
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 function GithubIcon({ size = 14, color = "currentColor" }) {
   return (
@@ -28,10 +36,70 @@ function GithubIcon({ size = 14, color = "currentColor" }) {
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [projectTab, setProjectTab] = useState('creations');
   const [githubConnected, setGithubConnected] = useState(false);
+  const [userHackathons, setUserHackathons] = useState([]);
 
+  const role = user?.role || 'participant';
   const isActive = (to) => location.pathname === to;
+
+  useEffect(() => {
+    if (role === 'organizer') {
+      api.get('/dashboard/organizer').then(r => setUserHackathons(r.data.data?.hackathons || [])).catch(() => {});
+    }
+  }, [role]);
+
+  // ── Role Specific Main Nav Items ──
+  const navItems = {
+    organizer: [
+      { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+      { to: '/hackathons', label: 'My Hackathons', icon: <Trophy size={16} /> },
+      { to: '/hackathons/create', label: 'Create Hackathon', icon: <Plus size={16} /> },
+      { to: '/dashboard', label: 'Registrations', icon: <Users size={16} /> },
+      { to: '/dashboard', label: 'Judge Assignments', icon: <CheckSquare size={16} /> },
+    ],
+    judge: [
+      { to: '/dashboard', label: 'Judge Console', icon: <LayoutGrid size={16} /> },
+      { to: '/dashboard', label: 'Submissions', icon: <FileText size={16} /> },
+      { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
+      { to: '/dashboard', label: 'Scoring Criteria', icon: <Sliders size={16} /> },
+    ],
+    participant: [
+      { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+      { to: '/hackathons', label: 'Explore Hackathons', icon: <Trophy size={16} /> },
+      { to: '/repositories', label: 'Repositories', icon: <FolderGit2 size={16} /> },
+      { to: '/kanban', label: 'Kanban Board', icon: <Kanban size={16} /> },
+    ],
+  }[role] || [
+    { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+    { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
+  ];
+
+  // ── Role Specific AI Tools ──
+  const aiTools = {
+    organizer: [
+      { label: 'AI Timeline Generator', desc: 'Auto-generate schedule milestones', action: () => toast('AI Timeline Assistant: Generating hackathon schedule... 🤖') },
+      { label: 'AI Broadcast Assistant', desc: 'Draft announcement updates', action: () => toast('AI Broadcast Assistant: Announcement draft created! 📢') },
+      { label: 'AI Judge Matcher', desc: 'Recommend judges for categories', action: () => toast('AI Judge Matcher: Matching judges to submissions... ⚖️') },
+    ],
+    judge: [
+      { label: 'AI Review Assistant', desc: 'Auto-suggest scores & feedback', action: () => toast('AI Review Assistant: Scoring notes generated! ⚡') },
+      { label: 'AI Plagiarism Audit', desc: 'Detect code similarity & metrics', action: () => toast('AI Code Audit: Scanning repository commits... 🔍') },
+      { label: 'AI Criteria Alignment', desc: 'Verify submission rubric fit', action: () => toast('AI Criteria Alignment: Rubric analysis complete! 🎯') },
+    ],
+    participant: [
+      { label: 'AI Pitch Validator', desc: 'Get instant pitch feedback', action: () => toast('AI Pitch Assistant: Pitch feedback generated! 💡') },
+      { label: 'AI Task Board Generator', desc: 'Create sprint Kanban tasks', action: () => toast('AI Task Generator: Sprint tasks created! ⚡') },
+    ],
+  }[role] || [];
+
+  const roleLabel = {
+    organizer: 'Organizer Console 🏗️',
+    judge: 'Judge Console ⚖️',
+    participant: 'Developer Space ⚡',
+    admin: 'Admin Control 🛡️',
+  }[role] || 'HackForge';
 
   return (
     <aside style={{
@@ -42,7 +110,7 @@ export default function Sidebar() {
     }}>
       
       {/* ── Brand Logo ── */}
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', marginBottom: 16, textDecoration: 'none' }}>
+      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', marginBottom: 14, textDecoration: 'none' }}>
         <div style={{
           width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -50,170 +118,179 @@ export default function Sidebar() {
         }}>
           <Zap size={16} color="#060709" strokeWidth={2.5} />
         </div>
-        <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Inter', sans-serif" }}>
-          HackForge
-        </span>
+        <div>
+          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', display: 'block', lineHeight: 1 }}>
+            HackForge
+          </span>
+          <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2, display: 'block' }}>
+            {roleLabel}
+          </span>
+        </div>
       </Link>
 
-      {/* ── User GitHub Connection Pill ── */}
+      {/* ── User Profile Card ── */}
       <div style={{
         background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-        borderRadius: 16, padding: '10px 12px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10
+        borderRadius: 16, padding: '10px 12px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 10
       }}>
         <div style={{
           width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#fff'
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#fff', flexShrink: 0
         }}>
           {user?.name?.[0]?.toUpperCase() || 'A'}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          {(githubConnected || user?.githubConnected || user?.authProvider === 'github' || user?.githubId) ? (
-            <div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#34d399', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <GithubIcon size={12} /> Connected
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.5)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                @{user?.githubUsername || user?.name?.toLowerCase().replace(/\s+/g, '') || 'developer'}
-              </div>
-            </div>
-          ) : (
-            <div>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.name || 'User'}
+          </div>
+          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>
+            {role} Role
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Role-based Navigation List ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
+        {navItems.map(item => (
+          <Link
+            key={item.to + item.label}
+            to={item.to}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
+              fontSize: '0.84rem', fontWeight: 600, textDecoration: 'none',
+              background: isActive(item.to) ? 'rgba(255,255,255,0.12)' : 'transparent',
+              border: isActive(item.to) ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+              color: isActive(item.to) ? '#fff' : 'rgba(255,255,255,0.65)',
+              transition: 'all 0.15s'
+            }}
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* ── Role-Specific AI Tools Section ── */}
+      <div style={{ marginBottom: 20, padding: '12px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.65rem', color: '#ffffff', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+          <Sparkles size={13} />
+          <span>{role.toUpperCase()} AI ASSISTANTS</span>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {aiTools.map(t => (
+            <button
+              key={t.label}
+              onClick={t.action}
+              style={{
+                width: '100%', padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.15s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+            >
+              <div style={{ fontWeight: 600, fontSize: '0.74rem', color: '#fff' }}>{t.label}</div>
+              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{t.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Role Projects / Quick Access Section ── */}
+      {role === 'organizer' && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>
+            ── MANAGED HACKATHONS ──
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {userHackathons.slice(0, 3).map(h => (
               <button
-                onClick={() => { setGithubConnected(true); toast.success('GitHub account connected!'); }}
+                key={h._id}
+                onClick={() => navigate(`/hackathons/${h._id}`)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#fff', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s'
+                  padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff', fontSize: '0.75rem', fontWeight: 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                 }}
               >
-                <GithubIcon size={11} /> Connect GitHub
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.title}</span>
+                <ChevronRight size={13} color="rgba(255,255,255,0.4)" />
               </button>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>No GitHub Account</div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Main Navigation List ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 24 }}>
-        <Link
-          to="/dashboard"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
-            fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/dashboard') ? 'rgba(255,255,255,0.12)' : 'transparent',
-            border: isActive('/dashboard') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-            color: isActive('/dashboard') ? '#fff' : 'rgba(255,255,255,0.65)',
-            transition: 'all 0.15s'
-          }}
-        >
-          <LayoutGrid size={16} />
-          <span>Dashboard</span>
-        </Link>
-
-        <div
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px',
-            borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.38)', cursor: 'default'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Users size={16} />
-            <span>Community</span>
+            ))}
+            <Link
+              to="/hackathons/create"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '8px 12px', background: '#ffffff', border: 'none',
+                borderRadius: 10, color: '#060709', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(255,255,255,0.3)'
+              }}
+            >
+              <Plus size={13} /> Create Hackathon
+            </Link>
           </div>
-          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.14)', padding: '2px 6px', borderRadius: 99 }}>
-            Soon
-          </span>
         </div>
+      )}
 
-        <Link
-          to="/repositories"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
-            fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/repositories') ? 'rgba(255,255,255,0.12)' : 'transparent',
-            border: isActive('/repositories') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-            color: isActive('/repositories') ? '#fff' : 'rgba(255,255,255,0.65)',
-            transition: 'all 0.15s'
-          }}
-        >
-          <FolderGit2 size={16} />
-          <span>Repositories</span>
-        </Link>
-
-        <Link
-          to="/kanban"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
-            fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/kanban') ? 'rgba(255,255,255,0.12)' : 'transparent',
-            border: isActive('/kanban') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
-            color: isActive('/kanban') ? '#fff' : 'rgba(255,255,255,0.65)',
-            transition: 'all 0.15s'
-          }}
-        >
-          <Kanban size={16} />
-          <span>Kanban Board</span>
-        </Link>
-      </div>
-
-      {/* ── My Projects Section ── */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
-          <span>── My Projects ──</span>
-        </div>
-
-        {/* Sub tabs: My Creations | Team Projects */}
-        <div style={{ display: 'flex', padding: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, marginBottom: 12 }}>
+      {role === 'judge' && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>
+            ── JUDGE ACTION HUB ──
+          </div>
           <button
-            onClick={() => setProjectTab('creations')}
+            onClick={() => navigate('/dashboard')}
             style={{
-              flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-              background: projectTab === 'creations' ? 'rgba(255,255,255,0.12)' : 'transparent',
-              color: projectTab === 'creations' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
+              width: '100%', padding: '10px 12px', borderRadius: 10, background: '#ffffff', border: 'none',
+              color: '#060709', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(255,255,255,0.3)'
             }}
           >
-            My Creations
-          </button>
-          <button
-            onClick={() => setProjectTab('team')}
-            style={{
-              flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-              background: projectTab === 'team' ? 'rgba(255,255,255,0.12)' : 'transparent',
-              color: projectTab === 'team' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
-            }}
-          >
-            Team Projects
+            ⚖️ Start Submissions Review
           </button>
         </div>
+      )}
 
-        {/* Project List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '8px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 8, cursor: 'pointer'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>lali</span>
-            </div>
-            <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#5e6ad2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#fff', fontWeight: 700 }}>A</div>
+      {role === 'participant' && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+            <span>── MY PROJECTS ──</span>
+          </div>
+
+          <div style={{ display: 'flex', padding: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, marginBottom: 12 }}>
+            <button
+              onClick={() => setProjectTab('creations')}
+              style={{
+                flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
+                background: projectTab === 'creations' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: projectTab === 'creations' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
+              }}
+            >
+              My Creations
+            </button>
+            <button
+              onClick={() => setProjectTab('team')}
+              style={{
+                flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
+                background: projectTab === 'team' ? 'rgba(255,255,255,0.12)' : 'transparent',
+                color: projectTab === 'team' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
+              }}
+            >
+              Team Projects
+            </button>
           </div>
 
           <Link
             to="/my-teams"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '8px 12px', background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.16)',
-              borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', fontWeight: 600, textDecoration: 'none'
+              padding: '8px 12px', background: '#ffffff', border: 'none',
+              borderRadius: 10, color: '#060709', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(255,255,255,0.3)'
             }}
           >
             <Plus size={13} /> Create New
           </Link>
         </div>
-      </div>
+      )}
 
     </aside>
   );
