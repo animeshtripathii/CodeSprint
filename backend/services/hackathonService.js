@@ -38,6 +38,9 @@ const listHackathons = async (queryParams) => {
 };
 
 const getHackathonById = async (id) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(404, 'Hackathon not found');
+  }
   const hackathon = await Hackathon.findById(id)
     .populate('organizer', 'name email avatar')
     .populate('judges', 'name email avatar role');
@@ -51,6 +54,9 @@ const createHackathon = async (data, organizerId) => {
 };
 
 const updateHackathon = async (id, data, userId, userRole) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(404, 'Hackathon not found');
+  }
   const hackathon = await Hackathon.findById(id);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
   if (hackathon.organizer.toString() !== userId.toString() && userRole !== 'admin') {
@@ -61,6 +67,9 @@ const updateHackathon = async (id, data, userId, userRole) => {
 };
 
 const deleteHackathon = async (id, userId, userRole) => {
+  if (!mongoose.isValidObjectId(id)) {
+    throw new ApiError(404, 'Hackathon not found');
+  }
   const hackathon = await Hackathon.findById(id);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
   if (hackathon.organizer.toString() !== userId.toString() && userRole !== 'admin') {
@@ -79,6 +88,9 @@ const getAvailableJudges = async () => {
 };
 
 const assignJudge = async (hackathonId, judgeIdentifier, organizerId) => {
+  if (!mongoose.isValidObjectId(hackathonId)) {
+    throw new ApiError(404, 'Hackathon not found');
+  }
   const hackathon = await Hackathon.findById(hackathonId);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
   if (hackathon.organizer.toString() !== organizerId.toString()) {
@@ -116,6 +128,9 @@ const assignJudge = async (hackathonId, judgeIdentifier, organizerId) => {
 };
 
 const removeJudge = async (hackathonId, judgeId, organizerId) => {
+  if (!mongoose.isValidObjectId(hackathonId)) {
+    throw new ApiError(404, 'Hackathon not found');
+  }
   const hackathon = await Hackathon.findById(hackathonId);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
   if (hackathon.organizer.toString() !== organizerId.toString()) {

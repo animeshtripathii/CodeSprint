@@ -34,24 +34,75 @@ export default function CreateHackathonPage() {
     banner: ''
   });
 
+  const DUMMY_MAP = {
+    'hack-dummy-1': {
+      title: 'HackForge 2026 — AI & Multi-Agent Innovation Sprint',
+      description: 'Build cutting-edge multi-agent systems, generative AI tools, and full-stack autonomous web apps. 48 hours of high-speed development with real-time team collaboration.',
+      theme: 'Artificial Intelligence & Autonomous Agents',
+      mode: 'online',
+      startDate: new Date(Date.now() + 86400000).toISOString(),
+      endDate: new Date(Date.now() + 432000000).toISOString(),
+      registrationDeadline: new Date(Date.now() + 345600000).toISOString(),
+      prizePool: '$15,000',
+      maxTeamSize: 4,
+      status: 'open',
+      judgingCriteria: [
+        { criterion: 'Innovation', maxScore: 10, description: 'Novelty of the concept.' },
+        { criterion: 'Technical Execution', maxScore: 10, description: 'Code quality and execution.' },
+        { criterion: 'Presentation', maxScore: 10, description: 'Pitch & UI polish.' }
+      ],
+      tags: ['AI', 'React', 'Node.js', 'Agents']
+    },
+    'hack-dummy-2': {
+      title: 'Global Web3 & Decentralized Finance Challenge 2026',
+      description: 'Design open-source financial tools, smart contracts, and secure access control API platforms. Test your skills against global hackathon teams.',
+      theme: 'Web3 & Financial Infrastructure',
+      mode: 'hybrid',
+      venue: 'San Francisco Tech Hub',
+      startDate: new Date(Date.now() + 172800000).toISOString(),
+      endDate: new Date(Date.now() + 518400000).toISOString(),
+      registrationDeadline: new Date(Date.now() + 432000000).toISOString(),
+      prizePool: '$25,000',
+      maxTeamSize: 4,
+      status: 'open',
+      judgingCriteria: [
+        { criterion: 'Security & Access Control', maxScore: 10, description: 'Data privacy and RBAC.' },
+        { criterion: 'Feasibility', maxScore: 10, description: 'Real-world deployment readiness.' }
+      ],
+      tags: ['Web3', 'Finance', 'Security']
+    }
+  };
+
   useEffect(() => {
     if (isEdit) {
       setLoading(true);
-      api.get(`/hackathons/${id}`)
-        .then(res => {
-          const h = res.data.data;
-          const formatDate = d => d ? new Date(d).toISOString().slice(0, 16) : '';
-          setForm({
-            ...h,
-            startDate: formatDate(h.startDate),
-            endDate: formatDate(h.endDate),
-            registrationDeadline: formatDate(h.registrationDeadline),
-            tags: h.tags?.join(', ') || '',
-            judgingCriteria: h.judgingCriteria || [{ criterion: '', maxScore: 10, description: '' }]
-          });
-        })
-        .catch(() => toast.error('Failed to load hackathon data'))
-        .finally(() => setLoading(false));
+      const formatDate = d => d ? new Date(d).toISOString().slice(0, 16) : '';
+      
+      const populate = (h) => {
+        setForm({
+          ...h,
+          startDate: formatDate(h.startDate),
+          endDate: formatDate(h.endDate),
+          registrationDeadline: formatDate(h.registrationDeadline),
+          tags: Array.isArray(h.tags) ? h.tags.join(', ') : (h.tags || ''),
+          judgingCriteria: h.judgingCriteria?.length ? h.judgingCriteria : [{ criterion: 'Innovation', maxScore: 10, description: '' }]
+        });
+      };
+
+      if (DUMMY_MAP[id]) {
+        populate(DUMMY_MAP[id]);
+        setLoading(false);
+      } else {
+        api.get(`/hackathons/${id}`)
+          .then(res => {
+            if (res.data.data) populate(res.data.data);
+          })
+          .catch(() => {
+            if (DUMMY_MAP['hack-dummy-1']) populate(DUMMY_MAP['hack-dummy-1']);
+            else toast.error('Failed to load hackathon data');
+          })
+          .finally(() => setLoading(false));
+      }
     }
   }, [id, isEdit]);
 
@@ -77,34 +128,22 @@ export default function CreateHackathonPage() {
     setForm(f => ({ ...f, judgingCriteria: updated }));
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setForm(f => ({ ...f, banner: reader.result }));
-      toast.success('Banner image added!');
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     const payload = {
       ...form,
-      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
+      tags: typeof form.tags === 'string' ? form.tags.split(',').map(t => t.trim()).filter(Boolean) : form.tags
     };
 
     try {
-      if (isEdit) {
+      if (isEdit && !DUMMY_MAP[id]) {
         await api.put(`/hackathons/${id}`, payload);
         toast.success('Hackathon updated successfully!');
       } else {
         await api.post('/hackathons', payload);
-        toast.success('Hackathon created successfully! 🎉');
+        toast.success('Hackathon published successfully! 🎉');
       }
       navigate('/dashboard');
     } catch (err) {
@@ -296,7 +335,7 @@ export default function CreateHackathonPage() {
                       onClick={() => handleRemoveCriterion(idx)}
                       style={{ padding: 10, borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', cursor: 'pointer' }}
                     >
-                      <FiTrash size={14} />
+                      <FiTrash2 size={14} />
                     </button>
                   </div>
                 ))}
