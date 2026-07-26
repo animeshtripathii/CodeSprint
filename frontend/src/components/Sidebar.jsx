@@ -19,7 +19,8 @@ import {
   Shield,
   LogOut,
   ChevronRight,
-  Sliders
+  Sliders,
+  User
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -54,6 +55,7 @@ export default function Sidebar() {
   const navItems = {
     organizer: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+      { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
       { to: '/hackathons', label: 'My Hackathons', icon: <Trophy size={16} /> },
       { to: '/hackathons/create', label: 'Create Hackathon', icon: <Plus size={16} /> },
       { to: '/dashboard', label: 'Registrations', icon: <Users size={16} /> },
@@ -61,18 +63,21 @@ export default function Sidebar() {
     ],
     judge: [
       { to: '/dashboard', label: 'Judge Console', icon: <LayoutGrid size={16} /> },
+      { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
       { to: '/dashboard', label: 'Submissions', icon: <FileText size={16} /> },
       { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
       { to: '/dashboard', label: 'Scoring Criteria', icon: <Sliders size={16} /> },
     ],
     participant: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+      { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
       { to: '/hackathons', label: 'Explore Hackathons', icon: <Trophy size={16} /> },
       { to: '/repositories', label: 'Repositories', icon: <FolderGit2 size={16} /> },
       { to: '/kanban', label: 'Kanban Board', icon: <Kanban size={16} /> },
     ],
   }[role] || [
     { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
+    { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
     { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
   ];
 
@@ -128,12 +133,18 @@ export default function Sidebar() {
         </div>
       </Link>
 
-      {/* ── User Profile Card ── */}
-      <div style={{
-        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-        borderRadius: 16, padding: '10px 12px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 10
-      }}>
+      {/* ── User Profile Card (Clickable to /profile) ── */}
+      <Link
+        to="/profile"
+        style={{
+          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+          borderRadius: 16, padding: '10px 12px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 10,
+          textDecoration: 'none', transition: 'all 0.15s ease'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
+      >
         <div style={{
           width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#fff', flexShrink: 0
@@ -146,10 +157,10 @@ export default function Sidebar() {
             {user?.name || 'User'}
           </div>
           <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>
-            {role} Role
+            {role} Role · View Profile ↗
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* ── Main Role-based Navigation List ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 20 }}>
