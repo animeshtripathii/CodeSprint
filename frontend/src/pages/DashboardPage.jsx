@@ -1102,260 +1102,487 @@ function OrganizerDash() {
   );
 }
 
-/* ── Judge Dashboard ── */
+/* ── Sparkline mini chart helper ── */
+function Sparkline({ data, color = '#8b5cf6', width = 130, height = 45, id }) {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = (max - min) || 1;
+  const pts = data.map((v, i) => [
+    (i / (data.length - 1)) * width,
+    height - ((v - min) / range) * (height * 0.8) - height * 0.08
+  ]);
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L ${width} ${height} L 0 ${height} Z`;
+  const gradId = `sp-${id || 'x'}`;
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gradId})`} />
+      <path d={line} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* ── Judge Dashboard (Stakent-style premium) ── */
 function JudgeDash() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeHackathon, setActiveHackathon] = useState('all');
-  const [filterReviewed, setFilterReviewed] = useState('all'); // 'all' | 'pending' | 'reviewed'
-  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('pending');
+  const [activeNav, setActiveNav] = useState('dashboard');
+  const [selectedSub, setSelectedSub] = useState(null);
+  const [activeCriteriaMode, setActiveCriteriaMode] = useState('Quick');
 
   useEffect(() => {
     setLoading(true);
     api.get('/dashboard/judge')
-      .then(r => { setData(r.data.data); setLoading(false); })
+      .then(r => {
+        setData(r.data.data);
+        const subs = r.data.data?.submissions || [];
+        if (subs.length > 0) setSelectedSub(subs[0]);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
-  const hackathons = data?.hackathons || [];
-  const allSubmissions = data?.submissions || [];
-
-  const filteredSubmissions = allSubmissions.filter(s => {
-    if (activeHackathon !== 'all' && s.hackathon !== activeHackathon && s.hackathon?._id !== activeHackathon) return false;
-    if (filterReviewed === 'pending' && s.reviewed) return false;
-    if (filterReviewed === 'reviewed' && !s.reviewed) return false;
-    if (searchTerm && !s.projectName.toLowerCase().includes(searchTerm.toLowerCase()) && !s.team?.name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
-
-  const total = data?.totalSubmissions ?? 0;
-  const done  = data?.completedReviews ?? 0;
+  const allSubs    = data?.submissions || [];
+  const hackathons = data?.hackathons  || [];
+  const total      = data?.totalSubmissions  ?? 0;
+  const done       = data?.completedReviews  ?? 0;
+  const pending    = data?.pendingReviews    ?? 0;
   const progressPct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  const pendingSubs  = allSubs.filter(s => !s.reviewed);
+  const reviewedSubs = allSubs.filter(s => s.reviewed);
+  const sidebarSubs  = activeTab === 'pending' ? pendingSubs : reviewedSubs;
+  const topSubs      = allSubs.slice(0, 3);
+
+  const SPARK_DATA  = [
+    [4, 6, 5, 7, 8, 7, 9, 8, 9, 8.5],
+    [6, 5, 7, 6, 8, 7, 6, 8, 7, 8],
+    [7, 5, 6, 4, 6, 5, 4, 5, 5, 4.5],
+  ];
+  const SPARK_COLORS = ['#8b5cf6', '#3b82f6', '#ef4444'];
+
+  const selectedHackathon = hackathons[0];
+  const criteria = selectedHackathon?.judgingCriteria?.length
+    ? selectedHackathon.judgingCriteria
+    : [
+        { criterion: 'Innovation',  maxScore: 10 },
+        { criterion: 'Execution',   maxScore: 10 },
+        { criterion: 'Impact',      maxScore: 10 },
+        { criterion: 'Design',      maxScore: 10 },
+      ];
+
+  const navItems = [
+    { id: 'dashboard',   icon: '⊞', label: 'Dashboard'       },
+    { id: 'submissions', icon: '📄', label: 'Submissions'     },
+    { id: 'hackathons',  icon: '🏆', label: 'Hackathons'      },
+    { id: 'criteria',    icon: '⚖️', label: 'Scoring Criteria'},
+    { id: 'reports',     icon: '📊', label: 'Reports'         },
+  ];
+
+  const CRIT_COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
+
+  // Colour seed from project name
+  const hueOf = (str = 'P') => (str.charCodeAt(0) * 5) % 360;
+
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: '#050507', color: '#fff', overflow: 'hidden' }}>
-      <DottedGlowBackground gap={22} radius={1.6} opacity={0.65} color="rgba(255,255,255,0.13)" glowColor="rgba(52,211,153,0.6)" />
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#0d0e14', color: '#fff', fontFamily: "'Inter', sans-serif" }}>
 
-      <div style={{ position: 'relative', zIndex: 10, padding: '36px 32px' }}>
+      {/* ══════════════ LEFT SUB-SIDEBAR ══════════════ */}
+      <div style={{ width: 214, flexShrink: 0, background: '#111219', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'linear-gradient(135deg, #34d399, #22d3ee)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', boxShadow: '0 4px 16px rgba(52,211,153,0.35)' }}>⚖️</div>
+        {/* Logo */}
+        <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>⚖️</div>
             <div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>Judge Panel</div>
-              <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2rem', lineHeight: 1.1, margin: 0 }}>
-                {user?.name?.split(' ')[0] || 'Judge'}'s Review Hub
-              </h1>
+              <div style={{ fontWeight: 700, fontSize: '0.85rem', lineHeight: 1 }}>Judge Panel</div>
+              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Review Console</div>
             </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Overall Progress</div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399', lineHeight: 1 }}>
-              {loading ? '—' : `${done} / ${total}`}
-            </div>
-            <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)' }}>reviews completed</div>
           </div>
         </div>
 
-        {/* ── Progress Bar ── */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Review Progress</span>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: progressPct === 100 ? '#34d399' : '#fbbf24' }}>{progressPct}%</span>
-          </div>
-          <div style={{ height: 10, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', borderRadius: 10, width: `${progressPct}%`, transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)',
-              background: progressPct === 100
-                ? 'linear-gradient(90deg, #34d399, #22d3ee)'
-                : progressPct > 60
-                  ? 'linear-gradient(90deg, #fbbf24, #34d399)'
-                  : 'linear-gradient(90deg, #fb7185, #fbbf24)',
-              boxShadow: progressPct > 0 ? '0 0 12px rgba(52,211,153,0.4)' : 'none',
-            }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)' }}>
-            <span>0 reviewed</span>
-            <span>{total} total</span>
+        {/* Tabs: Pending / Reviewed */}
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 9, padding: 3 }}>
+            {[{ id: 'pending', color: '#7c3aed' }, { id: 'reviewed', color: '#059669' }].map(t => (
+              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+                flex: 1, padding: '6px 0', borderRadius: 6, border: 'none', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                background: activeTab === t.id ? t.color : 'transparent',
+                color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,0.38)',
+              }}>
+                {t.id.charAt(0).toUpperCase() + t.id.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* ── Stats ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
-          {[
-            { label: 'Assigned Hackathons', val: loading ? '—' : hackathons.length, icon: '🏆', color: '#5b6ef8', glow: 'rgba(91,110,248,0.22)' },
-            { label: 'Pending Reviews', val: loading ? '—' : (data?.pendingReviews ?? 0), icon: '⏳', color: '#fb7185', glow: 'rgba(251,113,133,0.22)' },
-            { label: 'Completed Reviews', val: loading ? '—' : done, icon: '✅', color: '#34d399', glow: 'rgba(52,211,153,0.22)' },
-          ].map(s => (
-            <div key={s.label} className="liquid-glass" style={{ borderRadius: 16, padding: '20px 22px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', top: -10, right: -10, width: 60, height: 60, borderRadius: '50%', background: s.glow, filter: 'blur(18px)' }} />
-              <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>{s.icon}</div>
-              <div style={{ fontSize: '2rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: 5, fontWeight: 500 }}>{s.label}</div>
-            </div>
+        {/* Nav links */}
+        <div style={{ padding: '8px 10px 4px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          {navItems.map(n => (
+            <button key={n.id} onClick={() => { setActiveNav(n.id); if (n.id === 'submissions' && hackathons[0]) navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`); }} style={{
+              width: '100%', padding: '9px 10px', borderRadius: 8, border: 'none',
+              background: activeNav === n.id ? 'rgba(124,58,237,0.14)' : 'transparent',
+              borderLeft: `2px solid ${activeNav === n.id ? '#7c3aed' : 'transparent'}`,
+              color: activeNav === n.id ? '#c4b5fd' : 'rgba(255,255,255,0.42)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9,
+              fontSize: '0.78rem', fontWeight: activeNav === n.id ? 600 : 400, textAlign: 'left', transition: 'all 0.15s', marginBottom: 1,
+            }}>
+              <span style={{ fontSize: '0.88rem' }}>{n.icon}</span> {n.label}
+            </button>
           ))}
         </div>
 
-        {/* ── Project Queue ── */}
-        <div className="liquid-glass" style={{ borderRadius: 18, overflow: 'hidden' }}>
+        {/* Active Reviews list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 6px' }}>
+          <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.28)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 8, paddingLeft: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {activeTab === 'pending' ? 'Pending' : 'Reviewed'}
+            {pendingSubs.length > 0 && activeTab === 'pending' && (
+              <span style={{ background: '#7c3aed', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: '0.6rem' }}>{pendingSubs.length}</span>
+            )}
+          </div>
+          {loading ? (
+            <div style={{ padding: '10px 8px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.25)' }}>Loading...</div>
+          ) : sidebarSubs.length === 0 ? (
+            <div style={{ padding: '16px 8px', fontSize: '0.72rem', color: 'rgba(255,255,255,0.28)', textAlign: 'center' }}>
+              {activeTab === 'pending' ? '🎉 All caught up!' : 'No reviews yet'}
+            </div>
+          ) : sidebarSubs.slice(0, 10).map(s => (
+            <button key={s._id} onClick={() => setSelectedSub(s)} style={{
+              width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid', cursor: 'pointer', marginBottom: 4, textAlign: 'left', transition: 'all 0.15s',
+              background: selectedSub?._id === s._id ? 'rgba(124,58,237,0.13)' : 'rgba(255,255,255,0.02)',
+              borderColor: selectedSub?._id === s._id ? 'rgba(124,58,237,0.38)' : 'rgba(255,255,255,0.05)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: `hsl(${hueOf(s.projectName)}, 55%, 32%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, color: '#fff' }}>
+                  {(s.projectName || 'P')[0].toUpperCase()}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.7rem', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.projectName || 'Untitled'}</div>
+                  <div style={{ fontSize: '0.6rem', color: s.reviewed ? '#10b981' : '#f59e0b', marginTop: 1 }}>
+                    {s.reviewed ? `Score: ${s.myScore ?? '—'}` : 'Pending Review'}
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
 
-          {/* Toolbar */}
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.2rem', margin: 0 }}>Project Queue</h2>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Search */}
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Search project / team..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '7px 32px 7px 12px', color: '#fff', fontSize: '0.8rem', outline: 'none', width: 200 }}
-                />
-                <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem' }}>🔍</span>
+        {/* Progress pill */}
+        <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.18), rgba(79,70,229,0.12))', border: '1px solid rgba(124,58,237,0.28)', borderRadius: 10, padding: '10px 13px' }}>
+            <div style={{ fontSize: '0.62rem', color: '#a78bfa', fontWeight: 700, marginBottom: 3, display: 'flex', alignItems: 'center', gap: 4 }}>⚡ Review Progress</div>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>{done} / {total} Reviews</div>
+            <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #7c3aed, #4f46e5)', borderRadius: 4, transition: 'width 0.8s cubic-bezier(0.16,1,0.3,1)', boxShadow: '0 0 8px rgba(124,58,237,0.5)' }} />
+            </div>
+            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.35)', marginTop: 5, textAlign: 'right' }}>{progressPct}% complete</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════ MAIN CONTENT ══════════════ */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+
+        {/* ─ Top bar ─ */}
+        <div style={{ padding: '14px 22px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#111219', position: 'sticky', top: 0, zIndex: 20, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.38)', letterSpacing: '0.06em', marginBottom: 2 }}>
+              Recommended for Review · <span style={{ color: '#f59e0b' }}>{loading ? '…' : `${pending} Pending`}</span>
+            </div>
+            <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.45rem', lineHeight: 1 }}>Top Submissions</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            {['All', 'Innovation', 'Design', 'Technical'].map((f, fi) => (
+              <button key={f} style={{
+                padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)',
+                background: fi === 0 ? 'rgba(124,58,237,0.18)' : 'transparent',
+                color: fi === 0 ? '#c4b5fd' : 'rgba(255,255,255,0.42)',
+                fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer',
+              }}>{f}</button>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9, padding: '6px 12px' }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem' }}>⚖️</div>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{user?.name?.split(' ')[0] || 'Judge'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ─ Body ─ */}
+        <div style={{ padding: '18px 22px', flex: 1 }}>
+
+          {/* ══ Top row: 3 submission cards + AI card ══ */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 268px', gap: 13, marginBottom: 16 }}>
+
+            {/* 3 Submission cards */}
+            {(loading
+              ? [null, null, null]
+              : topSubs.length >= 3 ? topSubs.slice(0, 3) : [...topSubs, ...Array(3 - topSubs.length).fill(null)]
+            ).map((s, i) => {
+              const color = SPARK_COLORS[i];
+              const isGain = i < 2;
+              const changeVal = (1.2 + i * 0.4).toFixed(1);
+              const medals = ['🥇', '🥈', '🥉'];
+              return (
+                <div key={s?._id || i}
+                  onClick={() => s?._id && setSelectedSub(s)}
+                  style={{ background: '#161720', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '17px 16px 13px', cursor: s?._id ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+                  onMouseEnter={e => { if (s?._id) { e.currentTarget.style.borderColor = `${color}55`; e.currentTarget.style.background = '#1b1d28'; } }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.background = '#161720'; }}
+                >
+                  {/* Glow blob */}
+                  <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: `${color}18`, filter: 'blur(22px)', pointerEvents: 'none' }} />
+
+                  {/* Card header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color}20`, border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem' }}>
+                        {medals[i]}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.32)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          {loading ? '…' : s?.reviewed ? 'Reviewed' : 'Pending'}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {loading ? '———' : (s?.projectName || 'No Submission')}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); if (s?._id) navigate(`/judge/submissions/${s._id}/review`); }}
+                      style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}
+                    >↗</button>
+                  </div>
+
+                  {/* Team */}
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.37)', marginBottom: 8 }}>
+                    Team · <span style={{ color: '#a78bfa' }}>{loading ? '…' : (s?.team?.name || '—')}</span>
+                  </div>
+
+                  {/* Score */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1, color: loading || !s ? 'rgba(255,255,255,0.15)' : color }}>
+                      {loading ? '—' : s?.reviewed ? `${s.myScore ?? '—'}/10` : 'Pending'}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isGain ? '#10b981' : '#ef4444', marginTop: 4 }}>
+                      {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{changeVal} pts from avg
+                    </div>
+                  </div>
+
+                  {/* Sparkline */}
+                  <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden' }}>
+                    <Sparkline data={SPARK_DATA[i]} color={color} width={170} height={48} id={`top${i}`} />
+                  </div>
+
+                  {/* Tags */}
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {(s?.techStack || ['React', 'AI']).slice(0, 2).map(t => (
+                      <span key={t} style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', padding: '2px 7px', borderRadius: 7 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* AI Review Assistant card */}
+            <div style={{ background: 'linear-gradient(145deg, #150e2e, #0e0929)', border: '1px solid rgba(124,58,237,0.28)', borderRadius: 16, padding: '18px 16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: -30, right: -30, width: 110, height: 110, borderRadius: '50%', background: 'rgba(124,58,237,0.14)', filter: 'blur(28px)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', bottom: -15, left: -15, width: 70, height: 70, borderRadius: '50%', background: 'rgba(79,70,229,0.1)', filter: 'blur(18px)', pointerEvents: 'none' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(124,58,237,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>⚖️</div>
+                  <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>Judge AI</span>
+                </div>
+                <span style={{ fontSize: '0.58rem', background: 'rgba(124,58,237,0.28)', color: '#c4b5fd', borderRadius: 6, padding: '2px 7px', fontWeight: 700 }}>Beta</span>
               </div>
 
-              {/* Review filter */}
-              {['all', 'pending', 'reviewed'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFilterReviewed(f)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 20, border: 'none', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                    background: filterReviewed === f
-                      ? (f === 'reviewed' ? '#34d399' : f === 'pending' ? '#fb7185' : '#5b6ef8')
-                      : 'rgba(255,255,255,0.06)',
-                    color: filterReviewed === f ? (f === 'reviewed' ? '#000' : '#fff') : 'rgba(255,255,255,0.5)',
-                  }}
-                >
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
+              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.25rem', lineHeight: 1.25, marginBottom: 7, position: 'relative' }}>
+                AI Review Assistant
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.42)', lineHeight: 1.55, flex: 1, position: 'relative', marginBottom: 0 }}>
+                Auto-generate polished feedback notes, get AI score suggestions against judging criteria, and spot inconsistencies across your reviews.
+              </p>
 
-              {/* Hackathon filter */}
-              {hackathons.length > 1 && (
-                <select
-                  value={activeHackathon}
-                  onChange={e => setActiveHackathon(e.target.value)}
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '7px 12px', color: '#fff', fontSize: '0.8rem', outline: 'none', cursor: 'pointer' }}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 18, position: 'relative' }}>
+                <button
+                  onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
+                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(124,58,237,0.42)', border: '1px solid rgba(124,58,237,0.6)', color: '#fff', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,58,237,0.62)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(124,58,237,0.42)'}
                 >
-                  <option value="all">All Hackathons</option>
-                  {hackathons.map(h => <option key={h._id} value={h._id}>{h.title}</option>)}
-                </select>
-              )}
+                  ⚡ Start AI Review
+                </button>
+                <button
+                  onClick={() => hackathons[0] && navigate(`/judge/hackathon/${hackathons[0]._id}/submissions`)}
+                  style={{ padding: '10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.65)', fontWeight: 600, fontSize: '0.76rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                >
+                  📋 All Submissions
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Submission cards */}
-          {loading ? (
-            <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>⏳</div>
-              <div>Loading submissions...</div>
-            </div>
-          ) : filteredSubmissions.length === 0 ? (
-            <div style={{ padding: 56, textAlign: 'center' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 12 }}>📭</div>
-              <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: 6 }}>
-                {allSubmissions.length === 0 ? 'No submissions yet' : 'No results match your filters'}
+          {/* ══ Active Review Detail panel ══ */}
+          <div style={{ background: '#161720', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden' }}>
+
+            {/* Panel header */}
+            <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.32)' }}>
+                Active Review · updated {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} <span style={{ color: '#f59e0b' }}>●</span>
               </div>
-              <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
-                {allSubmissions.length === 0
-                  ? 'You have not been assigned to any hackathons with submissions.'
-                  : 'Try adjusting your search or filter criteria.'}
+              <div style={{ display: 'flex', gap: 7 }}>
+                {['↗', '↻', '▾'].map(ic => (
+                  <button key={ic} style={{ width: 28, height: 28, borderRadius: 7, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', cursor: 'pointer' }}>{ic}</button>
+                ))}
               </div>
             </div>
-          ) : (
-            <div>
-              {/* Column header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1.2fr 1fr auto', padding: '10px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 }}>
-                <div>Project</div><div>Team & Tech</div><div>Status</div><div>Action</div>
-              </div>
 
-              {filteredSubmissions.map((s, i) => (
-                <div
-                  key={s._id}
-                  style={{ display: 'grid', gridTemplateColumns: '2.5fr 1.2fr 1fr auto', padding: '16px 20px', borderBottom: i < filteredSubmissions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', alignItems: 'center', transition: 'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  {/* Project name + problem */}
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>{s.projectName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {s.problemStatement}
-                    </div>
-                  </div>
+            {/* Panel body */}
+            <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: '1fr 250px', gap: 24, alignItems: 'start' }}>
 
-                  {/* Team & tech stack */}
-                  <div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a78bfa', marginBottom: 5 }}>
-                      👥 {s.team?.name || 'Unknown Team'}
-                    </div>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {(s.techStack || []).slice(0, 3).map(t => (
-                        <span key={t} style={{ fontSize: '0.62rem', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.55)', padding: '2px 7px', borderRadius: 10 }}>{t}</span>
-                      ))}
-                      {(s.techStack || []).length > 3 && (
-                        <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.3)' }}>+{s.techStack.length - 3}</span>
+              {/* Left — selected submission detail */}
+              <div>
+                {selectedSub ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+                      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>📦</div>
+                      <div>
+                        <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.35rem', lineHeight: 1 }}>{selectedSub.projectName}</div>
+                        <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>
+                          by Team <span style={{ color: '#a78bfa' }}>{selectedSub.team?.name || '—'}</span>
+                        </div>
+                      </div>
+                      {selectedSub._id && (
+                        <div style={{ display: 'flex', gap: 6, marginLeft: 6, flexWrap: 'wrap' }}>
+                          <button onClick={() => navigate(`/judge/submissions/${selectedSub._id}/review`)} style={{ padding: '5px 13px', borderRadius: 8, background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.38)', color: '#c4b5fd', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+                            {selectedSub.reviewed ? '✏️ Edit Review' : '⚖️ Start Review'}
+                          </button>
+                          <button onClick={() => navigate(`/judge/hackathon/${hackathons[0]?._id}/submissions`)} style={{ padding: '5px 13px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', color: 'rgba(255,255,255,0.55)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}>
+                            View All ↗
+                          </button>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Status */}
-                  <div>
-                    {s.reviewed ? (
-                      <div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: 'rgba(52,211,153,0.12)', color: '#34d399', fontSize: '0.72rem', fontWeight: 700 }}>
-                          <CheckCircle2 size={12} /> Reviewed
-                        </span>
-                        {s.myScore !== null && (
-                          <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>Score: <strong style={{ color: '#fbbf24' }}>{s.myScore}</strong></div>
-                        )}
+                    {/* Big score display */}
+                    <div style={{ marginBottom: 14, display: 'flex', alignItems: 'flex-end', gap: 14 }}>
+                      <div style={{ fontSize: '3.2rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-2px', color: selectedSub.reviewed ? '#8b5cf6' : 'rgba(255,255,255,0.12)' }}>
+                        {selectedSub.reviewed ? (selectedSub.myScore ?? '—') : '—'}
+                        {selectedSub.reviewed && <span style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.3)', fontWeight: 400, letterSpacing: 0 }}> / 10</span>}
                       </div>
-                    ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: 'rgba(251,113,133,0.12)', color: '#fb7185', fontSize: '0.72rem', fontWeight: 700 }}>
-                        <Clock size={12} /> Pending
-                      </span>
-                    )}
-                  </div>
+                      {selectedSub.reviewed && (
+                        <div style={{ paddingBottom: 8 }}>
+                          <span style={{ padding: '5px 12px', borderRadius: 8, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.28)', color: '#10b981', fontSize: '0.7rem', fontWeight: 700 }}>
+                            ✓ Review Submitted
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Action button */}
-                  <button
-                    onClick={() => navigate(`/judge/submissions/${s._id}/review`)}
-                    style={{
-                      padding: '8px 16px', borderRadius: 10, border: 'none', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-                      background: s.reviewed
-                        ? 'rgba(255,255,255,0.07)'
-                        : 'linear-gradient(135deg, #5b6ef8, #a78bfa)',
-                      color: s.reviewed ? 'rgba(255,255,255,0.6)' : '#fff',
-                      boxShadow: s.reviewed ? 'none' : '0 3px 12px rgba(91,110,248,0.4)',
-                    }}
-                    onMouseEnter={e => { if (!s.reviewed) { e.currentTarget.style.boxShadow = '0 4px 18px rgba(91,110,248,0.6)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-                    onMouseLeave={e => { e.currentTarget.style.boxShadow = s.reviewed ? 'none' : '0 3px 12px rgba(91,110,248,0.4)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                  >
-                    {s.reviewed ? (
-                      <><Zap size={13} /> Edit Review</>
-                    ) : (
-                      <><Zap size={13} /> Start Review</>
-                    )}
-                  </button>
+                    {/* Problem statement */}
+                    <div style={{ fontSize: '0.76rem', color: 'rgba(255,255,255,0.42)', lineHeight: 1.62, marginBottom: 14, maxWidth: 500 }}>
+                      {selectedSub.problemStatement || 'No problem statement provided.'}
+                    </div>
+
+                    {/* Tech tags */}
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {(selectedSub.techStack || []).map(t => (
+                        <span key={t} style={{ fontSize: '0.62rem', background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.22)', color: '#a78bfa', padding: '3px 9px', borderRadius: 8 }}>{t}</span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.25)' }}>
+                    <div style={{ fontSize: '2.2rem', marginBottom: 10 }}>👈</div>
+                    <div style={{ fontSize: '0.82rem' }}>Select a submission from the sidebar</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right — Scoring Criteria */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.8rem' }}>Judging Criteria</div>
+                  <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 2 }}>
+                    {['Quick', 'Detail'].map(m => (
+                      <button key={m} onClick={() => setActiveCriteriaMode(m)} style={{
+                        padding: '4px 10px', borderRadius: 6, border: 'none', fontSize: '0.62rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                        background: activeCriteriaMode === m ? '#7c3aed' : 'transparent',
+                        color: activeCriteriaMode === m ? '#fff' : 'rgba(255,255,255,0.38)',
+                      }}>{m}</button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                  {criteria.map((c, i) => {
+                    const mockVal = selectedSub?.reviewed ? [7.5, 8, 6.5, 7][i % 4] : null;
+                    const pct = mockVal ? (mockVal / (c.maxScore || 10)) * 100 : 0;
+                    const bc = CRIT_COLORS[i % 4];
+                    return (
+                      <div key={c.criterion}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{c.criterion}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: bc }}>{mockVal ?? '—'}/{c.maxScore}</span>
+                        </div>
+                        <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${bc}88, ${bc})`, borderRadius: 4, transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', boxShadow: pct > 0 ? `0 0 8px ${bc}55` : 'none' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => selectedSub?._id && navigate(`/judge/submissions/${selectedSub._id}/review`)}
+                  style={{ width: '100%', marginTop: 16, padding: '10px', borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.76rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(124,58,237,0.38)', transition: 'all 0.2s' }}
+                  onMouseEnter={e => e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.55)'}
+                  onMouseLeave={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(124,58,237,0.38)'}
+                >
+                  {selectedSub?.reviewed ? '✏️ Edit Full Review' : '⚖️ Open Review Form'}
+                </button>
+              </div>
+            </div>
+
+            {/* ── 4 bottom metric cells ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { label: 'Innovation', sub: 'Originality score',    val: selectedSub?.reviewed ? '8.2/10' : '—', change: '+0.8 pts', pos: true,  spark: [5,6,7,6,7,8,7,8,8.2], color: '#8b5cf6' },
+                { label: 'Tech Depth', sub: 'Implementation quality', val: selectedSub?.reviewed ? '7.5/10' : '—', change: '+1.2 pts', pos: true,  spark: [4,5,5,6,6,7,7,7,7.5], color: '#3b82f6' },
+                { label: 'Progress',   sub: 'Reviews completed',    val: `${progressPct}%`,             change: `${done}/${total}`,   pos: progressPct > 40, spark: [10,20,30,35,45,50,55,progressPct,progressPct], color: '#10b981' },
+                { label: 'Avg Score',  sub: 'Across all reviews',   val: done > 0 ? '7.50' : '—',       change: '+0.3 pts', pos: true,  spark: [6,6.5,7,6.8,7.2,7.4,7.5,7.5,7.5], color: '#f59e0b' },
+              ].map((m, i) => (
+                <div key={m.label} style={{ padding: '14px 18px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.76rem' }}>{m.label}</div>
+                      <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.32)', marginTop: 1 }}>{m.sub}</div>
+                    </div>
+                    <span style={{ fontSize: '0.56rem', padding: '2px 6px', borderRadius: 5, background: m.pos ? 'rgba(16,185,129,0.12)' : 'rgba(239,68,68,0.12)', color: m.pos ? '#10b981' : '#ef4444', fontWeight: 700 }}>24H</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 7 }}>
+                    <div style={{ fontSize: '1.35rem', fontWeight: 800, color: m.color, lineHeight: 1 }}>{m.val}</div>
+                    <div style={{ fontSize: '0.62rem', color: m.pos ? '#10b981' : '#ef4444', fontWeight: 700 }}>
+                      {m.pos ? '▲' : '▼'} {m.change}
+                    </div>
+                  </div>
+                  <Sparkline data={m.spark} color={m.color} width={115} height={30} id={`bot${i}`} />
                 </div>
               ))}
             </div>
-          )}
+          </div>
 
-          {/* Footer summary */}
-          {filteredSubmissions.length > 0 && (
-            <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)' }}>
-              <span>Showing {filteredSubmissions.length} of {allSubmissions.length} submissions</span>
-              <span>{done} reviewed · {data?.pendingReviews ?? 0} pending</span>
-            </div>
-          )}
         </div>
-
       </div>
     </div>
   );
