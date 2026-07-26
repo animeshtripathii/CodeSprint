@@ -35,8 +35,8 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 250, flexShrink: 0, background: 'rgba(10, 12, 19, 0.85)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-      borderRight: '1px solid rgba(255,255,255,0.12)',
+      width: 250, flexShrink: 0, background: 'rgba(9, 10, 15, 0.92)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      borderRight: '1px solid rgba(255,255,255,0.08)',
       display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0,
       padding: '16px 14px', boxSizing: 'border-box', overflowY: 'auto'
     }}>
@@ -44,25 +44,25 @@ export default function Sidebar() {
       {/* ── Brand Logo ── */}
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', marginBottom: 16, textDecoration: 'none' }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 8, background: '#5e6ad2',
+          width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 14px rgba(94,106,210,0.5)'
+          boxShadow: '0 0 16px rgba(255,255,255,0.3)'
         }}>
-          <Zap size={16} color="#fff" strokeWidth={2.5} />
+          <Zap size={16} color="#060709" strokeWidth={2.5} />
         </div>
-        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Inter', sans-serif" }}>
+        <span style={{ fontWeight: 800, fontSize: '1.15rem', color: '#fff', letterSpacing: '-0.02em', fontFamily: "'Inter', sans-serif" }}>
           HackForge
         </span>
       </Link>
 
       {/* ── User GitHub Connection Pill ── */}
       <div style={{
-        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+        background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-        borderRadius: 14, padding: '10px 12px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10
+        borderRadius: 16, padding: '10px 12px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10
       }}>
         <div style={{
-          width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #5e6ad2, #a78bfa)',
+          width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem', color: '#fff'
         }}>
           {user?.name?.[0]?.toUpperCase() || 'A'}
@@ -83,8 +83,8 @@ export default function Sidebar() {
               <button
                 onClick={() => { setGithubConnected(true); toast.success('GitHub account connected!'); }}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6,
-                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)',
+                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
                   color: '#fff', fontSize: '0.68rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s'
                 }}
               >
@@ -101,10 +101,11 @@ export default function Sidebar() {
         <Link
           to="/dashboard"
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
             fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/dashboard') ? '#5e6ad2' : 'transparent',
-            color: isActive('/dashboard') ? '#fff' : 'rgba(255,255,255,0.7)',
+            background: isActive('/dashboard') ? 'rgba(255,255,255,0.12)' : 'transparent',
+            border: isActive('/dashboard') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+            color: isActive('/dashboard') ? '#fff' : 'rgba(255,255,255,0.65)',
             transition: 'all 0.15s'
           }}
         >
@@ -115,14 +116,14 @@ export default function Sidebar() {
         <div
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px',
-            borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.4)', cursor: 'default'
+            borderRadius: 12, fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255,255,255,0.38)', cursor: 'default'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Users size={16} />
             <span>Community</span>
           </div>
-          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.8)', background: 'rgba(255,255,255,0.12)', padding: '2px 6px', borderRadius: 99 }}>
+          <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.14)', padding: '2px 6px', borderRadius: 99 }}>
             Soon
           </span>
         </div>
@@ -130,10 +131,11 @@ export default function Sidebar() {
         <Link
           to="/repositories"
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
             fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/repositories') ? '#5e6ad2' : 'transparent',
-            color: isActive('/repositories') ? '#fff' : 'rgba(255,255,255,0.7)',
+            background: isActive('/repositories') ? 'rgba(255,255,255,0.12)' : 'transparent',
+            border: isActive('/repositories') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+            color: isActive('/repositories') ? '#fff' : 'rgba(255,255,255,0.65)',
             transition: 'all 0.15s'
           }}
         >
@@ -144,10 +146,11 @@ export default function Sidebar() {
         <Link
           to="/kanban"
           style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
             fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none',
-            background: isActive('/kanban') ? '#5e6ad2' : 'transparent',
-            color: isActive('/kanban') ? '#fff' : 'rgba(255,255,255,0.7)',
+            background: isActive('/kanban') ? 'rgba(255,255,255,0.12)' : 'transparent',
+            border: isActive('/kanban') ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
+            color: isActive('/kanban') ? '#fff' : 'rgba(255,255,255,0.65)',
             transition: 'all 0.15s'
           }}
         >
