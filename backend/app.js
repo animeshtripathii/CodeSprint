@@ -4,6 +4,7 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 
 const errorHandler = require('./middleware/errorHandler');
+const { apiLimiter, authLimiter, aiLimiter } = require('./middleware/rateLimiter');
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');
@@ -19,8 +20,12 @@ const taskRoutes = require('./routes/taskRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const githubRoutes = require('./routes/githubRoutes');
+const communityRoutes = require('./routes/communityRoutes');
 
 const app = express();
+
+// Trust reverse proxy (Render, Vercel, Nginx)
+app.set('trust proxy', 1);
 
 // ─── CORS ──────────────────────────────────────────────────────────────────
 const allowedOrigins = [
@@ -35,7 +40,14 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, Postman or server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Fallback to allow client requests in production
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -54,8 +66,13 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ─── Health check ─────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ success: true, message: '🚀 HackForge API is running!' });
+  res.status(200).json({ success: true, message: '🚀 CodeSprint API is running!' });
 });
+
+// ─── API Rate Limiters ────────────────────────────────────────────────────
+app.use('/api/auth', authLimiter);
+app.use('/api/ai', aiLimiter);
+app.use('/api', apiLimiter);
 
 // ─── API Routes ───────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
@@ -71,6 +88,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/teams', githubRoutes);
+app.use('/api/community', communityRoutes);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
 app.use((req, res) => {
