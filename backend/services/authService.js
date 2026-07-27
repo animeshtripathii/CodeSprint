@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const ApiError = require('../utils/ApiError');
+const crypto = require('crypto');
 
 /**
  * Register a new user
@@ -115,4 +116,52 @@ const syncClerkUser = async ({ clerkId, name, email, avatar }) => {
   return user;
 };
 
-module.exports = { registerUser, loginUser, getProfile, updateProfile, syncClerkUser };
+/**
+ * Request password reset token
+ */
+const requestPasswordReset = async (email) => {
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw new ApiError(404, 'User with this email does not exist');
+  }
+
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+  await user.save();
+  return { resetToken, user };
+};
+
+/**
+ * Reset password using token
+ */
+const resetPasswordWithToken = async (token, newPassword) => {
+  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, 'Invalid or expired reset token');
+  }
+
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  await user.save();
+  return user;
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  getProfile,
+  updateProfile,
+  syncClerkUser,
+  requestPasswordReset,
+  resetPasswordWithToken,
+};
