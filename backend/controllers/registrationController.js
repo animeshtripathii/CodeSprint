@@ -3,8 +3,14 @@ const registrationService = require('../services/registrationService');
 const ApiResponse = require('../utils/ApiResponse');
 
 const register = asyncHandler(async (req, res) => {
-  const reg = await registrationService.registerForHackathon(req.user._id, req.body.hackathonId);
+  const hackathonId = req.body.hackathonId || req.body.hackathon;
+  const reg = await registrationService.registerForHackathon(req.user._id, hackathonId);
   return res.status(201).json(new ApiResponse(201, reg, 'Registered successfully'));
+});
+
+const getRegistrationStatus = asyncHandler(async (req, res) => {
+  const status = await registrationService.getRegistrationStatus(req.user._id, req.params.hackathonId);
+  return res.status(200).json(new ApiResponse(200, status, 'Registration status fetched'));
 });
 
 const cancel = asyncHandler(async (req, res) => {
@@ -27,4 +33,4 @@ const getMyRegistrations = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, regs, 'My registrations fetched'));
 });
 
-module.exports = { register, cancel, listByHackathon, updateStatus, getMyRegistrations };
+module.exports = { register, getRegistrationStatus, cancel, listByHackathon, updateStatus, getMyRegistrations };

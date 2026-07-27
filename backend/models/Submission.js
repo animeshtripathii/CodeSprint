@@ -63,7 +63,7 @@ const submissionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'under_review', 'reviewed', 'approved', 'rejected'],
+      enum: ['pending', 'submitted', 'under_review', 'reviewed', 'approved', 'rejected'],
       default: 'pending',
     },
     // AI-generated summary (Phase 8)

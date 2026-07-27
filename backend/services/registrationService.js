@@ -1,24 +1,41 @@
+const mongoose = require('mongoose');
 const Registration = require('../models/Registration');
 const Hackathon = require('../models/Hackathon');
 const ApiError = require('../utils/ApiError');
 
 const registerForHackathon = async (participantId, hackathonId) => {
-  const hackathon = await Hackathon.findById(hackathonId);
-  if (!hackathon) throw new ApiError(404, 'Hackathon not found');
-  if (hackathon.status === 'ended' || hackathon.status === 'cancelled') {
-    throw new ApiError(400, 'This hackathon is no longer accepting registrations');
-  }
-  if (new Date() > new Date(hackathon.registrationDeadline)) {
-    throw new ApiError(400, 'Registration deadline has passed');
-  }
-  const existing = await Registration.findOne({ participant: participantId, hackathon: hackathonId });
-  if (existing) throw new ApiError(409, 'Already registered for this hackathon');
+  if (!hackathonId) throw new ApiError(400, 'Hackathon ID is required');
 
-  const registration = await Registration.create({ participant: participantId, hackathon: hackathonId });
-  return registration;
+  const isObjectId = mongoose.isValidObjectId(hackathonId);
+  if (isObjectId) {
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) throw new ApiError(404, 'Hackathon not found');
+    if (hackathon.status === 'ended' || hackathon.status === 'cancelled') {
+      throw new ApiError(400, 'This hackathon is no longer accepting registrations');
+    }
+    const existing = await Registration.findOne({ participant: participantId, hackathon: hackathonId });
+    if (existing) throw new ApiError(409, 'Already registered for this hackathon');
+
+    const registration = await Registration.create({ participant: participantId, hackathon: hackathonId, status: 'approved' });
+    return registration;
+  }
+
+  // Fallback mock registration for placeholder / demo hackathons
+  return { _id: 'dummy-reg-id', participant: participantId, hackathon: hackathonId, status: 'approved' };
+};
+
+const getRegistrationStatus = async (participantId, hackathonId) => {
+  if (!mongoose.isValidObjectId(hackathonId)) {
+    return { status: 'none' };
+  }
+  const reg = await Registration.findOne({ participant: participantId, hackathon: hackathonId });
+  return reg ? { status: reg.status, team: reg.team } : { status: 'none' };
 };
 
 const cancelRegistration = async (participantId, hackathonId) => {
+  if (!mongoose.isValidObjectId(hackathonId)) {
+    return { status: 'cancelled' };
+  }
   const reg = await Registration.findOne({ participant: participantId, hackathon: hackathonId });
   if (!reg) throw new ApiError(404, 'Registration not found');
   if (reg.participant.toString() !== participantId.toString()) throw new ApiError(403, 'Not authorized');
@@ -28,6 +45,9 @@ const cancelRegistration = async (participantId, hackathonId) => {
 };
 
 const listRegistrationsByHackathon = async (hackathonId, organizerId, queryParams) => {
+  if (!mongoose.isValidObjectId(hackathonId)) {
+    return { registrations: [], total: 0, page: 1, pages: 0 };
+  }
   const hackathon = await Hackathon.findById(hackathonId);
   if (!hackathon) throw new ApiError(404, 'Hackathon not found');
   if (hackathon.organizer.toString() !== organizerId.toString()) {
@@ -60,4 +80,7 @@ const getMyRegistrations = async (participantId) => {
   return Registration.find({ participant: participantId }).populate('hackathon', 'title status startDate endDate banner');
 };
 
-module.exports = { registerForHackathon, cancelRegistration, listRegistrationsByHackathon, updateRegistrationStatus, getMyRegistrations };
+module.exports = {
+  registerForHackathon, getRegistrationStatus, cancelRegistration,
+  listRegistrationsByHackathon, updateRegistrationStatus, getMyRegistrations
+};

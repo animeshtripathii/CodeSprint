@@ -61,4 +61,8 @@ teamSchema.pre('save', async function () {
   }
 });
 
+// High concurrency indexes
+teamSchema.index({ hackathon: 1 });
+teamSchema.index({ members: 1 });
+
 module.exports = mongoose.model('Team', teamSchema);

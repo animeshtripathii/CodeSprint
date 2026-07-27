@@ -90,8 +90,14 @@ const hackathonSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Validate dates before save
+// Validate dates before save — only when dates change or it's a new document
 hackathonSchema.pre('save', async function () {
+  const shouldValidate = this.isNew ||
+    this.isModified('startDate') ||
+    this.isModified('endDate') ||
+    this.isModified('registrationDeadline');
+  if (!shouldValidate) return;
+
   if (this.endDate <= this.startDate) {
     throw new Error('End date must be after start date');
   }
@@ -99,5 +105,10 @@ hackathonSchema.pre('save', async function () {
     throw new Error('Registration deadline must be before start date');
   }
 });
+
+// High concurrency indexes
+hackathonSchema.index({ organizer: 1 });
+hackathonSchema.index({ status: 1 });
+hackathonSchema.index({ judges: 1 });
 
 module.exports = mongoose.model('Hackathon', hackathonSchema);

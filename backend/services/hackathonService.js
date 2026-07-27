@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 const Hackathon = require('../models/Hackathon');
 const User = require('../models/User');
+const Registration = require('../models/Registration');
+const Team = require('../models/Team');
+const Submission = require('../models/Submission');
+const Review = require('../models/Review');
+const Task = require('../models/Task');
 const ApiError = require('../utils/ApiError');
 
 const buildQuery = (queryParams) => {
@@ -19,6 +24,12 @@ const buildQuery = (queryParams) => {
 };
 
 const listHackathons = async (queryParams) => {
+  // Auto-mark hackathons as 'ended' if their endDate has passed
+  await Hackathon.updateMany(
+    { endDate: { $lt: new Date() }, status: { $nin: ['ended', 'cancelled'] } },
+    { status: 'ended' }
+  );
+
   const { page = 1, limit = 10, sortBy = 'createdAt', order = 'desc' } = queryParams;
   const query = buildQuery(queryParams);
   const skip = (page - 1) * limit;
@@ -75,7 +86,17 @@ const deleteHackathon = async (id, userId, userRole) => {
   if (hackathon.organizer.toString() !== userId.toString() && userRole !== 'admin') {
     throw new ApiError(403, 'Not authorized to delete this hackathon');
   }
-  await hackathon.deleteOne();
+
+  // Cascade delete all associated records across collections
+  await Promise.all([
+    Registration.deleteMany({ hackathon: id }),
+    Team.deleteMany({ hackathon: id }),
+    Submission.deleteMany({ hackathon: id }),
+    Review.deleteMany({ hackathon: id }),
+    Task.deleteMany({ hackathon: id }),
+    hackathon.deleteOne(),
+  ]);
+
   return hackathon;
 };
 
