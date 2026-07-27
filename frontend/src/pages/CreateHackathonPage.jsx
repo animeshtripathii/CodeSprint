@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { FiArrowLeft, FiTrash, FiPlus, FiUploadCloud } from 'react-icons/fi';
+import { FiArrowLeft, FiTrash2, FiPlus, FiUploadCloud } from 'react-icons/fi';
 import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import toast from 'react-hot-toast';
 
@@ -30,13 +30,13 @@ export default function CreateHackathonPage() {
     maxTeamSize: 4,
     judgingCriteria: [{ criterion: 'Innovation', maxScore: 10, description: '' }],
     tags: '',
-    status: 'draft',
+    status: 'open',
     banner: ''
   });
 
   const DUMMY_MAP = {
     'hack-dummy-1': {
-      title: 'HackForge 2026 — AI & Multi-Agent Innovation Sprint',
+      title: 'CodeSprint 2026 — AI & Multi-Agent Innovation Sprint',
       description: 'Build cutting-edge multi-agent systems, generative AI tools, and full-stack autonomous web apps. 48 hours of high-speed development with real-time team collaboration.',
       theme: 'Artificial Intelligence & Autonomous Agents',
       mode: 'online',

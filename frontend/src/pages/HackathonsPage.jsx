@@ -80,7 +80,7 @@ export default function HackathonsPage() {
   const DUMMY_HACKATHONS = [
     {
       _id: 'hack-dummy-1',
-      title: 'HackForge 2026 — AI & Multi-Agent Innovation Sprint',
+      title: 'CodeSprint 2026 — AI & Multi-Agent Innovation Sprint',
       description: 'Build cutting-edge multi-agent systems, generative AI tools, and full-stack autonomous web apps. 48 hours of high-speed development with real-time team collaboration.',
       theme: 'Artificial Intelligence & Autonomous Agents',
       mode: 'online',
@@ -148,15 +148,16 @@ export default function HackathonsPage() {
       <div style={{ position:'relative', zIndex:10 }}>
 
         {/* ── Page Hero Header ── */}
-        <div style={{
-          paddingTop: 80, paddingBottom: 36,
-          borderBottom:'1px solid rgba(255,255,255,0.08)',
-          background:'rgba(9, 10, 15, 0.6)', backdropFilter:'blur(16px)',
-        }}>
-          <div className="container" style={{ padding:'0 28px' }}>
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:24, flexWrap:'wrap' }}>
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'120px 24px 40px' }}>
+          
+          {/* Header Liquid Panel */}
+          <div className="liquid-glass" style={{ padding:'36px 40px', borderRadius:28, marginBottom:40 }}>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:24, justifyContent:'space-between', alignItems:'center' }}>
               <div>
-                <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 12px', borderRadius:99, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.16)', color:'#fff', fontSize:'0.72rem', fontWeight:600, marginBottom:12 }}>
+                <div style={{
+                  fontSize:'0.72rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.12em',
+                  color:'rgba(255,255,255,0.5)', marginBottom:8, display:'flex', alignItems:'center', gap:8,
+                }}>
                   🏆 Discover & Compete
                 </div>
                 <h1 style={{ fontFamily:"'Instrument Serif', serif", fontSize:'clamp(2.2rem, 5vw, 3.2rem)', fontWeight:400, letterSpacing:'-0.02em', marginBottom:8, color:'#ffffff', lineHeight:1 }}>
@@ -219,6 +220,7 @@ export default function HackathonsPage() {
                 <FilterPill label="🟢 Open" active={filters.status==='open'} onClick={() => handleFilter('status', filters.status==='open'?'':'open')} />
                 <FilterPill label="🔵 Upcoming" active={filters.status==='upcoming'} onClick={() => handleFilter('status', filters.status==='upcoming'?'':'upcoming')} />
                 <FilterPill label="🟡 Ongoing" active={filters.status==='ongoing'} onClick={() => handleFilter('status', filters.status==='ongoing'?'':'ongoing')} />
+                <FilterPill label="🔴 Previous / Ended" active={filters.status==='ended'} onClick={() => handleFilter('status', filters.status==='ended'?'':'ended')} />
               </div>
 
               {/* More filters button */}

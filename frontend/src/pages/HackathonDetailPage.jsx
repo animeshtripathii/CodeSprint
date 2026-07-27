@@ -31,7 +31,7 @@ export default function HackathonDetailPage() {
   const DUMMY_MAP = {
     'hack-dummy-1': {
       _id: 'hack-dummy-1',
-      title: 'HackForge 2026 — AI & Multi-Agent Innovation Sprint',
+      title: 'CodeSprint 2026 — AI & Multi-Agent Innovation Sprint',
       description: 'Build cutting-edge multi-agent systems, generative AI tools, and full-stack autonomous web apps. 48 hours of high-speed development with real-time team collaboration.',
       theme: 'Artificial Intelligence & Autonomous Agents',
       mode: 'online',
@@ -111,8 +111,8 @@ export default function HackathonDetailPage() {
     }
     try {
       await api.post('/registrations', { hackathon: id });
-      setRegisterStatus('pending');
-      toast.success('Registration request submitted!');
+      setRegisterStatus('approved');
+      toast.success('Successfully registered for this hackathon! 🎉');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
     }
@@ -238,10 +238,23 @@ export default function HackathonDetailPage() {
                   </p>
 
                   {registerStatus === 'approved' ? (
-                    <div style={{ padding: 16, borderRadius: 14, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.28)', textAlign: 'center', marginBottom: 12 }}>
-                      <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem' }}>✓ Registration Approved</div>
-                      <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>You are registered for this hackathon!</div>
-                    </div>
+                    <>
+                      <div style={{ padding: 16, borderRadius: 14, background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.28)', textAlign: 'center', marginBottom: 12 }}>
+                        <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.9rem' }}>✓ Registration Approved</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>You are registered for this hackathon!</div>
+                      </div>
+                      <Link
+                        to={`/hackathons/${id}/submit`}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          padding: '12px', borderRadius: 12, background: '#ffffff', border: 'none',
+                          color: '#060709', fontWeight: 800, fontSize: '0.85rem', textDecoration: 'none',
+                          boxShadow: '0 4px 16px rgba(255,255,255,0.3)', marginBottom: 8
+                        }}
+                      >
+                        🚀 Submit Project Entry →
+                      </Link>
+                    </>
                   ) : registerStatus === 'pending' ? (
                     <div style={{ padding: 16, borderRadius: 14, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', textAlign: 'center', marginBottom: 12 }}>
                       <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.9rem' }}>⏳ Registration Pending</div>

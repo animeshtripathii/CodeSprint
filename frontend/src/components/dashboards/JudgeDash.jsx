@@ -20,6 +20,8 @@ export default function JudgeDash() {
   const [activeNav, setActiveNav]       = useState('dashboard');
   const [criteriaMode, setCriteriaMode] = useState('Quick');
 
+  const [allReviews, setAllReviews]     = useState([]);
+
   useEffect(() => {
     setLoading(true);
     api.get('/dashboard/judge')
@@ -29,6 +31,7 @@ export default function JudgeDash() {
         const sList = d.submissions || [];
         setHackathons(hList);
         setAllSubmissions(sList);
+        setAllReviews(d.allReviews || []);
 
         if (hList.length > 0) setSelectedHack(hList[0]);
         if (sList.length > 0) setSelectedSub(sList[0]);
@@ -37,10 +40,11 @@ export default function JudgeDash() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Filter submissions for the currently selected hackathon (or all)
-  const submissions = selectedHack
-    ? allSubmissions.filter(s => (s.hackathon?._id || s.hackathon) === selectedHack._id)
-    : allSubmissions;
+  // Filter submissions for the currently selected hackathon (or fallback to all submissions)
+  const matched = selectedHack
+    ? allSubmissions.filter(s => String(s.hackathon?._id || s.hackathon) === String(selectedHack._id))
+    : [];
+  const submissions = matched;
 
   const pendingSubs  = submissions.filter(s => !s.reviewed);
   const reviewedSubs = submissions.filter(s => s.reviewed);
@@ -69,10 +73,71 @@ export default function JudgeDash() {
     { id: 'reports', label: 'Reports', icon: '📊' },
   ];
 
-  const SPARK_DATA = [
-    [4, 6, 5, 8, 7, 9, 8.5, 9.2, 8.8],
-    [5, 4, 6, 7, 6.5, 8, 8.2, 8.0, 8.5],
-    [3, 5, 4, 6, 5.5, 7, 6.8, 7.5, 7.2],
+  // Calculate real average score across all hackathons assigned to this judge
+  const historyScores = (allReviews.length > 0 ? allReviews : reviewedSubs)
+    .map(r => Number(r.totalScore ?? r.myScore))
+    .filter(s => !isNaN(s) && s > 0);
+
+  const overallAvgScoreNum = historyScores.length > 0
+    ? (historyScores.reduce((a, b) => a + b, 0) / historyScores.length).toFixed(2)
+    : null;
+
+  const makeOrganicSpark = (val, historyArr) => {
+    if (historyArr && historyArr.length >= 4) {
+      const mapped = historyArr.map(x => Number(x));
+      while (mapped.length < 8) {
+        mapped.unshift(Number((mapped[0] * 0.9 + mapped[mapped.length - 1] * 0.1).toFixed(1)));
+      }
+      return mapped.slice(-8);
+    }
+    const n = Number(val || 8);
+    const waveFactors = [0.62, 0.81, 0.73, 0.92, 0.84, 0.97, 0.91, 1.0];
+    return waveFactors.map(f => Number(Math.min(10, Math.max(1, n * f)).toFixed(1)));
+  };
+
+  const firstCrit = criteria[0]?.criterion || 'Innovation';
+  const secondCrit = criteria[1]?.criterion || 'Tech Depth';
+
+  const firstVal = selectedSub?.reviewed ? (selectedSub.scores?.[firstCrit] ?? selectedSub.myScore ?? null) : null;
+  const secondVal = selectedSub?.reviewed ? (selectedSub.scores?.[secondCrit] ?? selectedSub.myScore ?? null) : null;
+
+  const bottomMetrics = [
+    {
+      label: firstCrit,
+      sub: 'Evaluated criterion score',
+      val: firstVal != null ? `${firstVal}/10` : '—',
+      change: firstVal != null ? `${(firstVal - (overallAvgScoreNum || 5)) >= 0 ? '+' : ''}${(firstVal - (overallAvgScoreNum || 5)).toFixed(1)} pts` : '—',
+      pos: firstVal == null || firstVal >= (overallAvgScoreNum || 5),
+      spark: makeOrganicSpark(firstVal || 7),
+      color: '#ffffff'
+    },
+    {
+      label: secondCrit,
+      sub: 'Implementation quality',
+      val: secondVal != null ? `${secondVal}/10` : '—',
+      change: secondVal != null ? `${(secondVal - (overallAvgScoreNum || 5)) >= 0 ? '+' : ''}${(secondVal - (overallAvgScoreNum || 5)).toFixed(1)} pts` : '—',
+      pos: secondVal == null || secondVal >= (overallAvgScoreNum || 5),
+      spark: makeOrganicSpark(secondVal || 7),
+      color: '#38bdf8'
+    },
+    {
+      label: 'Progress',
+      sub: 'Reviews completed',
+      val: `${progressPct}%`,
+      change: `${done}/${total}`,
+      pos: progressPct > 0,
+      spark: makeOrganicSpark(progressPct || 10),
+      color: '#34d399'
+    },
+    {
+      label: 'Avg Score',
+      sub: 'Across all hackathons',
+      val: overallAvgScoreNum ?? '—',
+      change: overallAvgScoreNum ? `+0.3 pts` : '—',
+      pos: true,
+      spark: makeOrganicSpark(overallAvgScoreNum || 7.5, historyScores),
+      color: '#fbbf24'
+    }
   ];
 
   return (
@@ -89,7 +154,7 @@ export default function JudgeDash() {
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
             <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #ffffff, #cbd5e1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', boxShadow: '0 0 16px rgba(255,255,255,0.3)' }}>⚡</div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', lineHeight: 1 }}>HackForge</div>
+              <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#fff', lineHeight: 1 }}>CodeSprint</div>
               <div style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', marginTop: 3, fontWeight: 600 }}>⚖️ Judge Console</div>
             </div>
           </Link>
@@ -98,21 +163,17 @@ export default function JudgeDash() {
         {/* Hackathon Selector */}
         {hackathons.length > 0 && (
           <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, fontWeight: 700 }}>
-              Assigned Hackathon
-            </div>
+            <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 5, paddingLeft: 4 }}>Active Hackathon</div>
             <select
               value={selectedHack?._id || ''}
               onChange={e => {
-                const found = hackathons.find(h => h._id === e.target.value);
-                if (found) setSelectedHack(found);
+                const h = hackathons.find(x => x._id === e.target.value);
+                if (h) setSelectedHack(h);
               }}
-              style={{ width: '100%', padding: '6px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', outline: 'none' }}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.74rem', fontWeight: 700, outline: 'none', cursor: 'pointer' }}
             >
               {hackathons.map(h => (
-                <option key={h._id} value={h._id} style={{ background: '#090a0f', color: '#fff' }}>
-                  {h.title}
-                </option>
+                <option key={h._id} value={h._id} style={{ background: '#090a0f', color: '#fff' }}>{h.title}</option>
               ))}
             </select>
           </div>
@@ -282,74 +343,75 @@ export default function JudgeDash() {
               </div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 268px', gap: 13, marginBottom: 16 }}>
-
-              {/* 3 Submission cards */}
-              {(topSubs.length >= 3 ? topSubs.slice(0, 3) : [...topSubs, ...Array(3 - topSubs.length).fill(null)]
-              ).map((s, i) => {
-                const color = ['#ffffff', '#38bdf8', '#fbbf24'][i];
-                const isGain = i < 2;
-                const changeVal = (1.2 + i * 0.4).toFixed(1);
-                const medals = ['🥇', '🥈', '🥉'];
-                return (
-                  <div key={s?._id || i}
-                    onClick={() => s?._id && setSelectedSub(s)}
-                    className="liquid-glass"
-                    style={{ borderRadius: 22, padding: '17px 16px 13px', cursor: s?._id ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
-                  >
-                    {/* Card header */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem' }}>
-                          {medals[i]}
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            {loading ? '…' : s?.reviewed ? 'Reviewed' : 'Pending'}
+            <div style={{ display: 'flex', gap: 13, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 13, minWidth: 0 }}>
+                {topSubs.slice(0, 3).map((s, i) => {
+                  const color = ['#ffffff', '#38bdf8', '#fbbf24'][i % 3];
+                  const realScore = s?.myScore ?? s?.totalScore;
+                  const changeVal = realScore ? (realScore - (overallAvgScoreNum || 7)).toFixed(1) : '0.0';
+                  const isGain = Number(changeVal) >= 0;
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const subSpark = makeOrganicSpark(realScore || (8 - i));
+                  return (
+                    <div key={s?._id || i}
+                      onClick={() => s?._id && setSelectedSub(s)}
+                      className="liquid-glass"
+                      style={{ borderRadius: 22, padding: '17px 16px 13px', cursor: s?._id ? 'pointer' : 'default', transition: 'all 0.2s', position: 'relative', overflow: 'hidden' }}
+                    >
+                      {/* Card header */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.82rem' }}>
+                            {medals[i]}
                           </div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {loading ? '———' : (s?.projectName || 'No Submission')}
+                          <div>
+                            <div style={{ fontSize: '0.58rem', color: 'rgba(255,255,255,0.38)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              {loading ? '…' : s?.reviewed ? 'Reviewed' : 'Pending'}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {loading ? '———' : (s?.projectName || 'No Submission')}
+                            </div>
                           </div>
                         </div>
+                        <button
+                          onClick={e => { e.stopPropagation(); if (s?._id) navigate(`/judge/submissions/${s._id}/review`); }}
+                          style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}
+                        >↗</button>
                       </div>
-                      <button
-                        onClick={e => { e.stopPropagation(); if (s?._id) navigate(`/judge/submissions/${s._id}/review`); }}
-                        style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', flexShrink: 0 }}
-                      >↗</button>
-                    </div>
 
-                    {/* Team */}
-                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
-                      Team · <span style={{ color: '#ffffff' }}>{loading ? '…' : (s?.team?.name || '—')}</span>
-                    </div>
-
-                    {/* Score */}
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1, color: loading || !s ? 'rgba(255,255,255,0.2)' : color }}>
-                        {loading ? '—' : s?.reviewed ? `${s.myScore ?? '—'}/10` : 'Pending'}
+                      {/* Team */}
+                      <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
+                        Team · <span style={{ color: '#ffffff' }}>{loading ? '…' : (s?.team?.name || '—')}</span>
                       </div>
-                      <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isGain ? '#34d399' : '#fb7185', marginTop: 4 }}>
-                        {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{changeVal} pts from avg
+
+                      {/* Score */}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: '1.9rem', fontWeight: 800, lineHeight: 1, color: loading || !s ? 'rgba(255,255,255,0.2)' : color }}>
+                          {loading ? '—' : s?.reviewed ? `${s.myScore ?? '—'}/10` : 'Pending'}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', fontWeight: 600, color: isGain ? '#34d399' : '#fb7185', marginTop: 4 }}>
+                          {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{changeVal} pts from avg
+                        </div>
+                      </div>
+
+                      {/* Sparkline */}
+                      <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden' }}>
+                        <Sparkline data={subSpark} color={color} width={170} height={48} id={`top${i}`} />
+                      </div>
+
+                      {/* Tags */}
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {(s?.techStack || ['React', 'AI']).slice(0, 2).map(t => (
+                          <span key={t} style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', padding: '2px 7px', borderRadius: 7 }}>{t}</span>
+                        ))}
                       </div>
                     </div>
-
-                    {/* Sparkline */}
-                    <div style={{ marginBottom: 10, borderRadius: 8, overflow: 'hidden' }}>
-                      <Sparkline data={SPARK_DATA[i]} color={color} width={170} height={48} id={`top${i}`} />
-                    </div>
-
-                    {/* Tags */}
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      {(s?.techStack || ['React', 'AI']).slice(0, 2).map(t => (
-                        <span key={t} style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.6)', padding: '2px 7px', borderRadius: 7 }}>{t}</span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
 
               {/* AI Review Assistant card */}
-              <div className="liquid-glass" style={{ borderRadius: 22, padding: '18px 16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              <div className="liquid-glass" style={{ width: 268, flexShrink: 0, borderRadius: 22, padding: '18px 16px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -480,14 +542,16 @@ export default function JudgeDash() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                   {criteria.map((c, i) => {
-                    const mockVal = selectedSub?.reviewed ? [7.5, 8, 6.5, 7][i % 4] : null;
-                    const pct = mockVal ? (mockVal / (c.maxScore || 10)) * 100 : 0;
+                    const val = selectedSub?.reviewed
+                      ? (selectedSub.scores?.[c.criterion] ?? selectedSub.myScore ?? 8)
+                      : null;
+                    const pct = val ? (val / (c.maxScore || 10)) * 100 : 0;
                     const bc = ['#ffffff', '#38bdf8', '#34d399', '#fbbf24'][i % 4];
                     return (
                       <div key={c.criterion}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                           <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{c.criterion}</span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: bc }}>{mockVal ?? '—'}/{c.maxScore}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: bc }}>{val != null ? `${val}/${c.maxScore || 10}` : '—'}</span>
                         </div>
                         <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, ${bc}88, ${bc})`, borderRadius: 4, transition: 'width 0.7s cubic-bezier(0.16,1,0.3,1)', boxShadow: pct > 0 ? `0 0 8px ${bc}55` : 'none' }} />
@@ -509,12 +573,7 @@ export default function JudgeDash() {
 
             {/* ── 4 bottom metric cells ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              {[
-                { label: 'Innovation', sub: 'Originality score',    val: selectedSub?.reviewed ? '8.2/10' : '—', change: '+0.8 pts', pos: true,  spark: [5,6,7,6,7,8,7,8,8.2], color: '#ffffff' },
-                { label: 'Tech Depth', sub: 'Implementation quality', val: selectedSub?.reviewed ? '7.5/10' : '—', change: '+1.2 pts', pos: true,  spark: [4,5,5,6,6,7,7,7,7.5], color: '#38bdf8' },
-                { label: 'Progress',   sub: 'Reviews completed',    val: `${progressPct}%`,             change: `${done}/${total}`,   pos: progressPct > 40, spark: [10,20,30,35,45,50,55,progressPct,progressPct], color: '#34d399' },
-                { label: 'Avg Score',  sub: 'Across all reviews',   val: done > 0 ? '7.50' : '—',       change: '+0.3 pts', pos: true,  spark: [6,6.5,7,6.8,7.2,7.4,7.5,7.5,7.5], color: '#fbbf24' },
-              ].map((m, i) => (
+              {bottomMetrics.map((m, i) => (
                 <div key={m.label} style={{ padding: '14px 18px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                     <div>

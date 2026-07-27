@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
-import { User, Mail, Shield, Award, CheckCircle2, Github, Globe, Sparkles, Building, Code2 } from 'lucide-react';
+import { User, Mail, Shield, Award, CheckCircle2, Globe, Sparkles, Building, Code2 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();

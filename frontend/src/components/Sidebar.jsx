@@ -58,8 +58,8 @@ export default function Sidebar() {
       { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
       { to: '/hackathons', label: 'My Hackathons', icon: <Trophy size={16} /> },
       { to: '/hackathons/create', label: 'Create Hackathon', icon: <Plus size={16} /> },
-      { to: '/dashboard', label: 'Registrations', icon: <Users size={16} /> },
-      { to: '/dashboard', label: 'Judge Assignments', icon: <CheckSquare size={16} /> },
+      { to: '/dashboard?action=registrations', label: 'Registrations', icon: <Users size={16} /> },
+      { to: '/dashboard?action=judges', label: 'Judge Assignments', icon: <CheckSquare size={16} /> },
     ],
     judge: [
       { to: '/dashboard', label: 'Judge Console', icon: <LayoutGrid size={16} /> },
@@ -104,7 +104,7 @@ export default function Sidebar() {
     judge: 'Judge Console ⚖️',
     participant: 'Developer Space ⚡',
     admin: 'Admin Control 🛡️',
-  }[role] || 'HackForge';
+  }[role] || 'CodeSprint';
 
   return (
     <aside style={{
@@ -125,7 +125,7 @@ export default function Sidebar() {
         </div>
         <div>
           <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', display: 'block', lineHeight: 1 }}>
-            HackForge
+            CodeSprint
           </span>
           <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2, display: 'block' }}>
             {roleLabel}

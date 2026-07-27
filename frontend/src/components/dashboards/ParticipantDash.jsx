@@ -1,22 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import {
-  Zap,
   GitCommit,
   GitPullRequest,
-  GitMerge,
-  Plus,
-  CheckCircle2,
-  ChevronDown,
-  Calendar,
-  Award,
-  HelpCircle,
-  Gift,
-  Bell,
-  User,
   Folder,
+  Award,
+  CheckCircle2,
+  Play,
   Compass,
   Sparkles,
   ExternalLink,
@@ -28,7 +20,8 @@ import {
   ShieldAlert,
   Check,
   Settings,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import { DottedGlowBackground } from '../ui/dotted-glow-background';
 import toast from 'react-hot-toast';
@@ -49,8 +42,6 @@ export default function ParticipantDash() {
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('stats');
   const [githubConnected, setGithubConnected] = useState(false);
-  const [deadlineFilter, setDeadlineFilter] = useState('1 Week');
-  const [eventFilter, setEventFilter] = useState('1 Week');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   // Quick Tour Modal state
@@ -61,19 +52,19 @@ export default function ParticipantDash() {
 
   const [checklist, setChecklist] = useState([
     { id: 1, title: 'Connect your GitHub Account', desc: 'Sync your public repos, track commits & PR activity', done: isGithubConnected, link: '/repositories', actionText: 'View Repositories →' },
-    { id: 2, title: 'Explore Active Hackathons', desc: 'Browse open hackathons, prize pools & schedules', done: false, link: '/hackathons', actionText: 'Browse Hackathons →' },
+    { id: 2, title: 'Explore Active Hackathons', desc: 'Browse open hackathons, prize pools & schedules', done: true, link: '/hackathons', actionText: 'Browse Hackathons →' },
     { id: 3, title: 'Join or Form a Hackathon Team', desc: 'Collaborate with developers or enter team invite code', done: false, link: '/join-team', actionText: 'Join Team →' },
     { id: 4, title: 'Link Repository to Project', desc: 'Connect GitHub repo to your team workspace', done: false, link: '/repositories', actionText: 'Link Repo →' },
     { id: 5, title: 'Visit Team Workspace & Kanban Board', desc: 'Manage sprint tasks, assign work & live team chat', done: true, link: '/dashboard', actionText: 'View Workspace →' },
-    { id: 6, title: 'Validate Idea with HackForge AI', desc: 'Get instant AI feedback on pitch & architecture', done: false, link: '/dashboard', actionText: 'AI Assistant →' },
+    { id: 6, title: 'Validate Idea with CodeSprint AI', desc: 'Get instant AI feedback on pitch & architecture', done: false, link: '/dashboard', actionText: 'AI Assistant →' },
     { id: 7, title: 'Submit Project for Judging', desc: 'Finalize project demo, video & track live leaderboard', done: false, link: '/hackathons', actionText: 'Submit Project →' },
   ]);
 
   const TOUR_STEPS = [
     {
-      title: 'Welcome to HackForge! 🚀',
+      title: 'Welcome to CodeSprint! 🚀',
       subtitle: 'The ultimate hackathon management & developer workspace platform.',
-      content: 'HackForge seamlessly connects your GitHub repositories, tracks commits & pull requests, enables real-time team collaboration, and provides AI-powered submission evaluation.',
+      content: 'CodeSprint seamlessly connects your GitHub repositories, tracks commits & pull requests, enables real-time team collaboration, and provides AI-powered submission evaluation.',
       badge: 'Overview',
     },
     {
@@ -102,10 +93,16 @@ export default function ParticipantDash() {
     },
   ];
 
-  const [expandedCheckItem, setExpandedCheckItem] = useState(null);
-
   useEffect(() => {
-    api.get('/dashboard/participant').then(r => setData(r.data.data)).catch(() => {});
+    api.get('/dashboard/participant')
+      .then(r => setData(r.data.data))
+      .catch(() => {
+        setData({
+          registrations: [],
+          teams: [],
+          submissions: []
+        });
+      });
   }, []);
 
   const toggleCheckItem = (id) => {
@@ -173,11 +170,15 @@ export default function ParticipantDash() {
     }
   }, [isGithubConnected, ghUsername]);
 
+  const registrations = data?.registrations || [];
+  const teams = data?.teams || data?.myTeams || [];
+  const hasWorkspaces = registrations.length > 0 || teams.length > 0;
+
   return (
     <div style={{ position: 'relative', background: '#050507', minHeight: '100vh', color: '#f0f2ff', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
       
       {/* ── Animated Canvas Dotted Glow Background ── */}
-      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(129, 140, 248, 0.8)" speedMin={0.3} speedMax={1.4} />
+      <DottedGlowBackground gap={20} radius={1.8} opacity={0.7} color="rgba(255,255,255,0.16)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
       {/* Ambient Radial Spotlights */}
       <div style={{ position: 'absolute', top: '-10%', left: '30%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(94,106,210,0.12) 0%, transparent 70%)', pointerEvents: 'none', filter: 'blur(70px)', zIndex: 2 }} />
@@ -197,105 +198,34 @@ export default function ParticipantDash() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button title="Notifications" onClick={() => navigate('/notifications')} style={{ padding: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
-            <Bell size={16} />
-          </button>
-          <button title="Help & Support" onClick={() => toast('Help Center coming soon!')} style={{ padding: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
-            <HelpCircle size={16} />
-          </button>
-          <button title="Perks & Rewards" onClick={() => toast('Developer Perks unlocked!')} style={{ padding: 8, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer' }}>
-            <Gift size={16} />
-          </button>
-          
-          {/* Profile Dropdown Trigger */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setProfileMenuOpen(v => !v)}
-              style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)',
-                borderRadius: 9999, padding: '3px 10px 3px 4px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'}
-            >
-              {user?.avatar ? (
-                <img src={user.avatar} alt="Profile" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{
-                  width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #5e6ad2, #a78bfa)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem',
-                  color: '#fff'
-                }}>
-                  {user?.name?.[0]?.toUpperCase() || 'A'}
-                </div>
-              )}
-              <ChevronDown size={13} color="rgba(255,255,255,0.6)" style={{ transform: profileMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            </button>
-
-            {/* Profile Dropdown Menu */}
-            {profileMenuOpen && (
-              <>
-                <div onClick={() => setProfileMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998 }} />
-                
-                <div style={{
-                  position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 240, zIndex: 999,
-                  background: 'rgba(18, 22, 34, 0.94)', backdropFilter: 'blur(20px) saturate(180%)', WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  border: '1px solid rgba(255, 255, 255, 0.16)', borderRadius: 16, padding: 8,
-                  boxShadow: '0 20px 48px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                }}>
-                  <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 6 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user?.name || 'Developer'}
-                    </div>
-                    <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user?.email || 'user@hackforge.dev'}
-                    </div>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, padding: '2px 8px', borderRadius: 9999, background: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.3)', color: '#a78bfa', fontSize: '0.65rem', fontWeight: 600 }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#a78bfa' }} />
-                      {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Participant'} Mode
-                    </div>
-                  </div>
-
-                  <button onClick={() => { setProfileMenuOpen(false); navigate('/profile'); }} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'transparent', border: 'none', color: '#fff', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <User size={15} color="rgba(255,255,255,0.7)" /> Manage Profile
-                  </button>
-
-                  <button onClick={() => { setProfileMenuOpen(false); navigate('/repositories'); }} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'transparent', border: 'none', color: '#fff', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <GithubIcon size={15} color="rgba(255,255,255,0.7)" /> Linked GitHub Repos
-                  </button>
-
-                  <button onClick={() => { setProfileMenuOpen(false); setTourOpen(true); setTourStep(0); }} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'transparent', border: 'none', color: '#fff', fontSize: '0.82rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Sparkles size={15} color="#a78bfa" /> Platform Quick Tour
-                  </button>
-
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
-
-                  <button onClick={() => { setProfileMenuOpen(false); logout && logout(); }} style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <LogOut size={15} /> Log Out
-                  </button>
-                </div>
-              </>
-            )}
+          {/* User profile avatar link */}
+          <div
+            onClick={() => navigate('/profile')}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.78rem', fontWeight: 700, color: '#fff' }}>
+              {user?.name?.[0]?.toUpperCase() || 'D'}
+            </div>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff' }}>{user?.name || 'Developer'}</span>
           </div>
         </div>
       </header>
 
       {/* ── Main Dashboard Body ── */}
-      <div style={{ position: 'relative', zIndex: 10, maxWidth: 1400, margin: '0 auto', padding: '32px 28px' }}>
+      <div className="container" style={{ position: 'relative', zIndex: 10, paddingTop: 28, paddingBottom: 64, maxWidth: 1280 }}>
         
-        {/* Banner Section */}
-        <div className="liquid-glass" style={{ borderRadius: 22, padding: '28px 32px', marginBottom: 32, position: 'relative', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+        {/* Welcome Hero Banner */}
+        <div className="liquid-glass" style={{ borderRadius: 24, padding: '32px 36px', marginBottom: 28, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', fontSize: '0.72rem', fontWeight: 600, marginBottom: 12 }}>
-                ⚡ Developer Workspace
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 12px', borderRadius: 99, background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.75rem', fontWeight: 700, marginBottom: 12 }}>
+                ⚡ Developer Workspace Active
               </div>
-              <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2.4rem', lineHeight: 1.1, margin: '0 0 8px 0' }}>
-                Build, Collaborate & Win Hackathons
+              <h1 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '2.4rem', margin: '0 0 8px 0', lineHeight: 1.05 }}>
+                Welcome back, {user?.name || 'Developer'}
               </h1>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', margin: 0, maxWidth: 620 }}>
-                Manage your team sprints, sync live GitHub commits, and generate AI submission feedback.
+              <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.5)', margin: 0, maxWidth: 540, lineHeight: 1.5 }}>
+                Track your active hackathon entries, sync public GitHub repositories, collaborate with team members, and submit projects for scoring.
               </p>
             </div>
 
@@ -315,8 +245,8 @@ export default function ParticipantDash() {
           {[
             { label: 'GitHub Commits', val: githubStats.commits, icon: <GitCommit size={18} color="#ffffff" />, color: '#ffffff', sub: 'Synced from GitHub' },
             { label: 'Pull Requests', val: githubStats.prs, icon: <GitPullRequest size={18} color="#38bdf8" />, color: '#38bdf8', sub: `${githubStats.mergedPrs} Merged` },
-            { label: 'Active Projects', val: data?.myTeams?.length || 1, icon: <Folder size={18} color="#34d399" />, color: '#34d399', sub: 'Workspace active' },
-            { label: 'Hackathons Joined', val: data?.registeredHackathons?.length || 0, icon: <Award size={18} color="#fbbf24" />, color: '#fbbf24', sub: 'Registrations' },
+            { label: 'Active Workspaces', val: (teams.length || registrations.length) || 1, icon: <Folder size={18} color="#34d399" />, color: '#34d399', sub: 'Workspace active' },
+            { label: 'Hackathons Joined', val: registrations.length || 1, icon: <Award size={18} color="#fbbf24" />, color: '#fbbf24', sub: 'Registrations' },
           ].map(s => (
             <div key={s.label} className="liquid-glass" style={{ borderRadius: 22, padding: '20px 22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -331,33 +261,95 @@ export default function ParticipantDash() {
           ))}
         </div>
 
-        {/* Main Grid: Onboarding Checklist & Active Workspace */}
+        {/* Main Grid: Workspaces & Onboarding */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 20 }}>
           
-          {/* Active Teams & Workspaces */}
+          {/* Active Workspaces & Registered Hackathons */}
           <div className="liquid-glass" style={{ borderRadius: 22, padding: '24px 26px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem', margin: 0 }}>Your Hackathon Workspaces</h2>
+              <div>
+                <h2 style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.5rem', margin: 0 }}>Your Hackathon Workspaces</h2>
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                  Active event registrations & team project workspaces
+                </div>
+              </div>
               <button onClick={() => navigate('/hackathons')} style={{ background: 'none', border: 'none', color: '#ffffff', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>
-                Find Team →
+                Browse Events →
               </button>
             </div>
 
-            {data?.myTeams?.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {data.myTeams.map(t => (
-                  <div key={t._id} style={{ padding: '16px 18px', borderRadius: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {hasWorkspaces ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                
+                {/* Registered Hackathons */}
+                {registrations.map(r => {
+                  const h = r.hackathon || {};
+                  return (
+                    <div key={r._id || h._id} style={{ padding: '18px 20px', borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }}>
+                            ● Registered Participant
+                          </span>
+                          <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
+                            {h.mode || 'Offline'} Mode
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#fff' }}>
+                          {h.title || 'Code-With-AI'}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>
+                          Theme: {h.theme || 'Vibecoding & Artificial Intelligence'}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => navigate(`/hackathons/${h._id || 'hack-dummy-1'}`)}
+                          style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer' }}
+                        >
+                          Event Info ↗
+                        </button>
+                        <button
+                          onClick={() => navigate('/join-team')}
+                          style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Users size={13} /> Team Pass
+                        </button>
+                        <button
+                          onClick={() => navigate(`/hackathons/${h._id || 'hack-dummy-1'}/submit`)}
+                          style={{
+                            padding: '8px 16px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                            background: r.status === 'submitted' || r.hasSubmitted ? 'linear-gradient(135deg, #10b981, #059669)' : '#ffffff',
+                            color: r.status === 'submitted' || r.hasSubmitted ? '#ffffff' : '#060709',
+                            fontWeight: 800, fontSize: '0.78rem', boxShadow: '0 4px 14px rgba(255,255,255,0.3)'
+                          }}
+                        >
+                          {r.status === 'submitted' || r.hasSubmitted ? 'Submitted ✓' : 'Submit Entry 🚀'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Team Workspaces */}
+                {teams.map(t => (
+                  <div key={t._id} style={{ padding: '18px 20px', borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>{t.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                      <div style={{ fontSize: '0.65rem', color: '#38bdf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>
+                        Team Workspace
+                      </div>
+                      <div style={{ fontWeight: 800, fontSize: '1.05rem', color: '#fff' }}>{t.name}</div>
+                      <div style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
                         Hackathon: <span style={{ color: '#ffffff' }}>{t.hackathon?.title || 'Active Hackathon'}</span>
                       </div>
                     </div>
-                    <button onClick={() => navigate(`/workspace/${t._id}`)} style={{ padding: '8px 16px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>
+                    <button onClick={() => navigate(`/workspace/${t._id}`)} style={{ padding: '9px 18px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer' }}>
                       Open Workspace ↗
                     </button>
                   </div>
                 ))}
+
               </div>
             ) : (
               <div style={{ padding: '36px 20px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 16, border: '1px dashed rgba(255,255,255,0.12)' }}>
@@ -419,18 +411,24 @@ export default function ParticipantDash() {
             <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.7)', margin: '0 0 16px 0' }}>{TOUR_STEPS[tourStep].subtitle}</p>
             <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, margin: '0 0 24px 0' }}>{TOUR_STEPS[tourStep].content}</p>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <button onClick={() => setTourOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', cursor: 'pointer' }}>Skip Tour</button>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {tourStep > 0 && (
-                  <button onClick={() => setTourStep(prev => prev - 1)} style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.82rem', cursor: 'pointer' }}>Back</button>
-                )}
-                {tourStep < TOUR_STEPS.length - 1 ? (
-                  <button onClick={() => setTourStep(prev => prev + 1)} style={{ padding: '8px 20px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>Next →</button>
-                ) : (
-                  <button onClick={() => { setTourOpen(false); toast.success('Tour completed!'); }} style={{ padding: '8px 20px', borderRadius: 10, background: '#34d399', border: 'none', color: '#060709', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>Finish Tour 🎉</button>
-                )}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => setTourStep(prev => Math.max(0, prev - 1))}
+                disabled={tourStep === 0}
+                style={{ padding: '8px 16px', borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.8rem', fontWeight: 600, opacity: tourStep === 0 ? 0.4 : 1, cursor: tourStep === 0 ? 'default' : 'pointer' }}
+              >
+                Previous
+              </button>
+
+              <button
+                onClick={() => {
+                  if (tourStep < TOUR_STEPS.length - 1) setTourStep(prev => prev + 1);
+                  else setTourOpen(false);
+                }}
+                style={{ padding: '8px 20px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
+              >
+                {tourStep === TOUR_STEPS.length - 1 ? 'Finish Tour 🎉' : 'Next Step →'}
+              </button>
             </div>
           </div>
         </div>

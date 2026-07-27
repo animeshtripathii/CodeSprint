@@ -657,7 +657,7 @@ export default function RepoTreePage() {
 
       <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', height: '100vh' }}>
         
-        <DottedGlowBackground gap={20} radius={1.8} opacity={0.65} color="rgba(255,255,255,0.15)" glowColor="rgba(129, 140, 248, 0.7)" speedMin={0.3} speedMax={1.4} />
+        <DottedGlowBackground gap={20} radius={1.8} opacity={0.65} color="rgba(255,255,255,0.15)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
         {/* Top Header Navigation */}
         <header style={{

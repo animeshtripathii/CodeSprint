@@ -62,14 +62,14 @@ const Navbar = ({ dark = false }) => {
           <Link to="/" style={{ display:'flex', alignItems:'center', gap:10, color:'var(--text-primary)', textDecoration:'none' }}>
             <div style={{
               width:30, height:30, borderRadius:8,
-              background:'linear-gradient(135deg, #5b6ef8, #a78bfa)',
+              background:'linear-gradient(135deg, #ffffff, #cbd5e1)',
               display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:'0.72rem', fontWeight:800, color:'#fff',
+              fontSize:'0.72rem', fontWeight:800, color:'#060709',
               fontFamily:'Space Grotesk, sans-serif',
-              boxShadow:'0 0 14px rgba(91,110,248,0.4)',
-            }}>HF</div>
+              boxShadow:'0 0 14px rgba(255,255,255,0.3)',
+            }}>CS</div>
             <span style={{ fontFamily:'Space Grotesk, sans-serif', fontWeight:700, fontSize:'1.05rem', letterSpacing:'-0.02em', color:'var(--text-primary)' }}>
-              HackForge
+              CodeSprint
             </span>
           </Link>
 
@@ -124,9 +124,9 @@ const Navbar = ({ dark = false }) => {
                   >
                     <div style={{
                       width:26, height:26, borderRadius:7,
-                      background:'linear-gradient(135deg, #5b6ef8, #a78bfa)',
+                      background:'linear-gradient(135deg, #ffffff, #cbd5e1)',
                       display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:'0.72rem', fontWeight:700, color:'#fff',
+                      fontSize:'0.72rem', fontWeight:800, color:'#060709',
                     }}>
                       {user.name?.[0]?.toUpperCase()}
                     </div>
@@ -194,15 +194,15 @@ const Navbar = ({ dark = false }) => {
                 >Log in</Link>
 
                 <Link to="/register" style={{
-                  padding:'7px 18px', borderRadius:8, fontSize:'0.85rem', fontWeight:700,
-                  color:'#fff', textDecoration:'none',
-                  background:'linear-gradient(135deg, #5b6ef8, #7f8fff)',
-                  boxShadow:'0 4px 14px rgba(91,110,248,0.35)',
-                  border:'1px solid rgba(255,255,255,0.12)',
+                  padding:'7px 18px', borderRadius:8, fontSize:'0.85rem', fontWeight:800,
+                  color:'#060709', textDecoration:'none',
+                  background:'#ffffff',
+                  boxShadow:'0 4px 14px rgba(255,255,255,0.3)',
+                  border:'none',
                   transition:'all 0.15s ease',
                 }}
-                onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 6px 20px rgba(91,110,248,0.5)'; e.currentTarget.style.transform='translateY(-1px)';}}
-                onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 4px 14px rgba(91,110,248,0.35)'; e.currentTarget.style.transform='none';}}
+                onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 6px 20px rgba(255,255,255,0.5)'; e.currentTarget.style.transform='translateY(-1px)';}}
+                onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 4px 14px rgba(255,255,255,0.3)'; e.currentTarget.style.transform='none';}}
                 >Sign up →</Link>
               </>
             )}
@@ -245,7 +245,7 @@ const Navbar = ({ dark = false }) => {
             ) : (
               <>
                 <Link to="/login" onClick={()=>setMobileOpen(false)} style={{ padding:'13px', borderRadius:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', color:'var(--text-secondary)', fontSize:'0.95rem', fontWeight:600, textAlign:'center', textDecoration:'none' }}>Log in</Link>
-                <Link to="/register" onClick={()=>setMobileOpen(false)} style={{ padding:'13px', borderRadius:10, background:'linear-gradient(135deg,#5b6ef8,#7f8fff)', color:'#fff', fontSize:'0.95rem', fontWeight:700, textAlign:'center', textDecoration:'none' }}>Sign up free →</Link>
+                <Link to="/register" onClick={()=>setMobileOpen(false)} style={{ padding:'13px', borderRadius:10, background:'#ffffff', color:'#060709', fontSize:'0.95rem', fontWeight:800, textAlign:'center', textDecoration:'none' }}>Sign up free →</Link>
               </>
             )}
           </div>

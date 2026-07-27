@@ -118,7 +118,7 @@ function Navbar() {
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flexShrink: 0, zIndex: 1 }}>
           <Zap size={20} color="white" strokeWidth={2.5} />
           <span style={{ color: 'white', fontWeight: 600, fontSize: '1rem', letterSpacing: '-0.03em', fontFamily: "'Inter', sans-serif" }}>
-            HackForge
+            CodeSprint
           </span>
         </Link>
 

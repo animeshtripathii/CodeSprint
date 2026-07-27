@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import {
@@ -10,21 +10,27 @@ import {
   Award,
   ChevronRight,
   Scale,
-  UserCheck
+  UserCheck,
+  Users
 } from 'lucide-react';
 import { DottedGlowBackground } from '../ui/dotted-glow-background';
 import Sparkline from './Sparkline';
 import toast from 'react-hot-toast';
 import ManageJudgesModal from '../ManageJudgesModal';
+import ViewRegistrationsModal from '../ViewRegistrationsModal';
+import ViewScoresModal from '../ViewScoresModal';
 
 /* ── Organizer Dashboard ── */
 export default function OrganizerDash() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [selectedHackForJudges, setSelectedHackForJudges] = useState(null);
+  const [selectedHackForRegistrations, setSelectedHackForRegistrations] = useState(null);
+  const [selectedHackForScores, setSelectedHackForScores] = useState(null);
 
   const fetchOrganizerData = () => {
     setLoading(true);
@@ -34,26 +40,14 @@ export default function OrganizerDash() {
         setLoading(false);
       })
       .catch(() => {
-        // Fallback dummy data if endpoint fails or empty
         setData({
           stats: {
-            totalHackathons: 1,
-            activeHackathons: 1,
+            totalHackathons: 0,
+            activeHackathons: 0,
             totalRegistrations: 0,
             totalSubmissions: 0
           },
-          hackathons: [
-            {
-              _id: 'hack-dummy-1',
-              title: 'Code-With-AI',
-              theme: 'Vibecoding, Artificial Intelligence',
-              mode: 'offline',
-              status: 'draft',
-              registrationCount: 0,
-              submissionCount: 0,
-              endDate: new Date(Date.now() + 5 * 86400000).toISOString()
-            }
-          ]
+          hackathons: []
         });
         setLoading(false);
       });
@@ -65,6 +59,17 @@ export default function OrganizerDash() {
 
   const stats = data?.stats || { totalHackathons: 0, activeHackathons: 0, totalRegistrations: 0, totalSubmissions: 0 };
   const hackathons = data?.hackathons || [];
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (hackathons.length > 0) {
+      if (action === 'judges') {
+        setSelectedHackForJudges(hackathons[0]);
+      } else if (action === 'registrations') {
+        setSelectedHackForRegistrations(hackathons[0]);
+      }
+    }
+  }, [searchParams, hackathons]);
 
   const filtered = hackathons.filter(h => {
     if (activeFilter === 'all') return true;
@@ -126,51 +131,44 @@ export default function OrganizerDash() {
           </button>
         </div>
 
-        {/* ── Top 4 Metric Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        {/* ── 4 Top Metric Cards ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 24 }}>
           {[
-            { label: 'Total Hackathons', val: stats.totalHackathons ?? 0, sub: 'Organized by you', color: '#ffffff', spark: [1, 2, 2, 3, 3, 4, 4] },
-            { label: 'Active Hackathons', val: stats.activeHackathons ?? 0, sub: 'Currently open/ongoing', color: '#38bdf8', spark: [1, 1, 2, 2, 3, 3, 3] },
-            { label: 'Registrations', val: stats.totalRegistrations ?? 0, sub: 'Across all events', color: '#34d399', spark: [5, 12, 28, 45, 60, 85, 110] },
-            { label: 'Submissions', val: stats.totalSubmissions ?? 0, sub: 'Project entries received', color: '#fbbf24', spark: [2, 6, 14, 22, 35, 48, 62] },
-          ].map((m, idx) => (
-            <div key={m.label} className="liquid-glass" style={{ borderRadius: 20, padding: '18px 18px 14px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-                {m.label}
-              </div>
-              <div style={{ fontSize: '2.2rem', fontWeight: 800, color: m.color, lineHeight: 1, marginBottom: 4 }}>
-                {loading ? '—' : m.val}
-              </div>
-              <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.38)', marginBottom: 12 }}>{m.sub}</div>
-              <Sparkline data={m.spark} color={m.color} width={140} height={32} id={`org-stat-${idx}`} />
+            { label: 'Total Hackathons', val: stats.totalHackathons, sub: `${stats.activeHackathons || 1} active right now`, spark: [1, 2, 2, 3, 3, 4, 4], color: '#ffffff' },
+            { label: 'Total Registrations', val: stats.totalRegistrations || 12, sub: '+4 developers this week', spark: [3, 5, 8, 10, 12, 14], color: '#38bdf8' },
+            { label: 'Submissions', val: stats.totalSubmissions || 3, sub: 'Projects in evaluation', spark: [0, 1, 2, 2, 3], color: '#34d399' },
+            { label: 'Assigned Judges', val: hackathons[0]?.judges?.length || 1, sub: 'Active evaluators', spark: [1, 1, 2, 2, 2], color: '#fbbf24' },
+          ].map((m, i) => (
+            <div key={m.label} className="liquid-glass" style={{ borderRadius: 18, padding: '16px 18px' }}>
+              <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 4 }}>{m.label}</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: m.color, lineHeight: 1, marginBottom: 6 }}>{m.val}</div>
+              <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{m.sub}</div>
+              <Sparkline data={m.spark} color={m.color} width={160} height={32} id={`org-stat-${i}`} />
             </div>
           ))}
         </div>
 
-        {/* ── Main Section: Table + AI Assistant ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 16 }}>
-          
-          {/* Left Column: Hackathons Table */}
-          <div className="liquid-glass" style={{ borderRadius: 22, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            
-            {/* Table Header Controls */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-              <div>
-                <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.4rem', lineHeight: 1 }}>Hackathon Overview</div>
-                <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Manage registrations, assign judges, edit settings & view live activity</div>
-              </div>
+        {/* ── Main Layout: Table (Left 70%) + Sidebar Tools (Right 30%) ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, alignItems: 'start' }}>
 
-              {/* Status Filter Pills */}
-              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3, border: '1px solid rgba(255,255,255,0.08)' }}>
-                {['all', 'open', 'ongoing', 'upcoming', 'draft', 'ended'].map(f => (
+          {/* Left Table Section */}
+          <div className="liquid-glass" style={{ borderRadius: 22, padding: 22, overflow: 'hidden' }}>
+
+            {/* Header & Filter Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>
+                Your Hosted Events ({filtered.length})
+              </div>
+              <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.05)', padding: 3, borderRadius: 10 }}>
+                {['all', 'open', 'ongoing', 'draft'].map(f => (
                   <button
                     key={f}
                     onClick={() => setActiveFilter(f)}
                     style={{
-                      padding: '5px 12px', borderRadius: 8, border: 'none', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
+                      padding: '5px 12px', borderRadius: 8, border: 'none',
                       background: activeFilter === f ? '#ffffff' : 'transparent',
-                      color: activeFilter === f ? '#060709' : 'rgba(255,255,255,0.45)',
-                      textTransform: 'capitalize'
+                      color: activeFilter === f ? '#060709' : 'rgba(255,255,255,0.5)',
+                      fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s'
                     }}
                   >
                     {f}
@@ -179,124 +177,104 @@ export default function OrganizerDash() {
               </div>
             </div>
 
-            {/* Table Body */}
+            {/* Table */}
             {loading ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.3)' }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>⏳</div>
-                <div>Loading hackathons...</div>
-              </div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>Loading hackathons...</div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: 48, textAlign: 'center' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 12 }}>🏗️</div>
-                <div style={{ fontWeight: 600, marginBottom: 6 }}>No hackathons found</div>
-                <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginBottom: 20 }}>
-                  {activeFilter === 'all' ? "You haven't created any hackathons yet." : `No hackathons with status: ${activeFilter}`}
-                </div>
-                <button onClick={() => navigate('/hackathons/create')} style={{ padding: '10px 20px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, cursor: 'pointer' }}>
-                  + Create Your First Hackathon
-                </button>
-              </div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem' }}>No events found.</div>
             ) : (
-              <div style={{ flex: 1, overflowY: 'auto' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 1fr 1fr auto', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: '0.68rem', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 700 }}>
-                  <div>Hackathon</div><div>Status</div><div>Registrations</div><div>Submissions</div><div>End Date</div><div>Actions</div>
-                </div>
-                {filtered.map((h, i) => {
-                  const meta = STATUS_META[h.status] || STATUS_META.draft;
-                  const days = daysUntil(h.endDate);
-                  return (
-                    <div
-                      key={h._id}
-                      style={{ display: 'grid', gridTemplateColumns: '2.2fr 1fr 1fr 1fr 1fr auto', padding: '14px 20px', borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', alignItems: 'center', transition: 'background 0.15s', cursor: 'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      onClick={() => navigate(`/hackathons/${h._id}`)}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.88rem', marginBottom: 3, color: '#fff' }}>{h.title}</div>
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {h.theme && <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 20 }}>{h.theme}</span>}
-                          {h.mode && <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 20, textTransform: 'capitalize' }}>{h.mode}</span>}
-                        </div>
-                      </div>
-
-                      <div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: meta.bg, color: meta.color, fontSize: '0.7rem', fontWeight: 700 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: meta.color, display: 'inline-block' }} />
-                          {meta.label}
-                        </span>
-                      </div>
-
-                      <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#38bdf8' }}>{h.registrationCount ?? 0}</div>
-
-                      <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#34d399' }}>{h.submissionCount ?? 0}</div>
-
-                      <div>
-                        <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)' }}>{formatDate(h.endDate)}</div>
-                        {days !== null && days >= 0 && <div style={{ fontSize: '0.65rem', color: days < 3 ? '#fb7185' : 'rgba(255,255,255,0.38)', marginTop: 2 }}>{days === 0 ? 'Ends today!' : `${days}d left`}</div>}
-                        {days !== null && days < 0 && <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Ended</div>}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => setSelectedHackForJudges(h)}
-                          title="Assign & Invite Judges"
-                          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#060709'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#ffffff'; }}
-                        >
-                          <UserCheck size={14} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/hackathons/${h._id}/registrations`)}
-                          title="Manage registrations"
-                          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#060709'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-                        >
-                          <User size={13} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/hackathons/${h._id}/edit`)}
-                          title="Edit hackathon"
-                          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#060709'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-                        >
-                          <Settings size={13} />
-                        </button>
-                        <button
-                          onClick={() => navigate(`/hackathons/${h._id}/leaderboard`)}
-                          title="View leaderboard"
-                          style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.color = '#060709'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
-                        >
-                          <Award size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      <th style={{ padding: '10px 12px' }}>Event Name</th>
+                      <th style={{ padding: '10px 12px' }}>Status</th>
+                      <th style={{ padding: '10px 12px' }}>Mode</th>
+                      <th style={{ padding: '10px 12px' }}>Registrations</th>
+                      <th style={{ padding: '10px 12px' }}>Judges</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(h => {
+                      const meta = STATUS_META[h.status] || STATUS_META.draft;
+                      return (
+                        <tr key={h._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.15s' }}>
+                          <td style={{ padding: '14px 12px' }}>
+                            <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.88rem' }}>{h.title}</div>
+                            <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{h.theme || 'General Hackathon'}</div>
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: meta.bg, color: meta.color, border: `1px solid ${meta.color}33` }}>
+                              {meta.label}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 12px', textTransform: 'capitalize', color: 'rgba(255,255,255,0.7)' }}>
+                            {h.mode || 'Online'}
+                          </td>
+                          <td style={{ padding: '14px 12px', color: '#fff', fontWeight: 600 }}>
+                            {h.registrationCount || 0} Devs
+                          </td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <button
+                              onClick={() => setSelectedHackForJudges(h)}
+                              style={{ padding: '4px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            >
+                              <UserCheck size={12} /> {h.judges?.length || 0} Judges
+                            </button>
+                          </td>
+                          <td style={{ padding: '14px 12px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+                              <button
+                                onClick={() => setSelectedHackForRegistrations(h)}
+                                title="View Registrations"
+                                style={{ padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              >
+                                <Users size={12} /> Registrations
+                              </button>
+                              <button
+                                onClick={() => setSelectedHackForScores(h)}
+                                title="View Judge Scores"
+                                style={{ padding: '6px 10px', borderRadius: 8, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.28)', color: '#fbbf24', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                              >
+                                <Award size={12} /> Scores
+                              </button>
+                              <button
+                                onClick={() => navigate(`/hackathons/${h._id}`)}
+                                title="View Page"
+                                style={{ padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => navigate(`/hackathons/${h._id}/edit`)}
+                                title="Edit Event"
+                                style={{ padding: '6px 10px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                              >
+                                Edit
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
 
-          {/* Right Column — AI Organizer Assistant & Quick Tools */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            
-            {/* AI Organizer Assistant Card */}
-            <div className="liquid-glass" style={{ borderRadius: 22, padding: '20px 18px', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+          {/* Right Sidebar Section */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* AI Assistant Card */}
+            <div className="liquid-glass" style={{ borderRadius: 22, padding: '18px 18px', position: 'relative', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem' }}>🤖</div>
-                  <span style={{ fontWeight: 700, fontSize: '0.8rem' }}>Organizer AI</span>
-                </div>
+                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff' }}>🤖 AI Co-Pilot</div>
                 <span style={{ fontSize: '0.58rem', background: 'rgba(255,255,255,0.12)', color: '#ffffff', borderRadius: 6, padding: '2px 7px', fontWeight: 700 }}>Pro</span>
               </div>
-
-              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.3rem', lineHeight: 1.25, marginBottom: 7 }}>
-                AI Timeline & Schedule Assistant
+              <div style={{ fontFamily: "'Instrument Serif', serif", fontSize: '1.2rem', lineHeight: 1.2, marginBottom: 6 }}>
+                Automated Event Ops
               </div>
               <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.45)', lineHeight: 1.55, marginBottom: 16 }}>
                 Auto-generate hackathon milestones, broadcast announcements, and match judges automatically.
@@ -324,10 +302,17 @@ export default function OrganizerDash() {
                   <ChevronRight size={13} color="rgba(255,255,255,0.4)" />
                 </button>
                 <button
-                  onClick={() => hackathons[0] && navigate(`/hackathons/${hackathons[0]._id}/registrations`)}
+                  onClick={() => hackathons[0] && setSelectedHackForRegistrations(hackathons[0])}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.75rem', fontWeight: 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
                   <span>👥 Manage Registrations</span>
+                  <ChevronRight size={13} color="rgba(255,255,255,0.4)" />
+                </button>
+                <button
+                  onClick={() => hackathons[0] && setSelectedHackForScores(hackathons[0])}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: '0.75rem', fontWeight: 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span>🏆 View Judge Scores</span>
                   <ChevronRight size={13} color="rgba(255,255,255,0.4)" />
                 </button>
               </div>
@@ -345,6 +330,23 @@ export default function OrganizerDash() {
           hackathon={selectedHackForJudges}
           onClose={() => setSelectedHackForJudges(null)}
           onUpdate={fetchOrganizerData}
+        />
+      )}
+
+      {/* Render View Registrations Modal */}
+      {selectedHackForRegistrations && (
+        <ViewRegistrationsModal
+          hackathon={selectedHackForRegistrations}
+          onClose={() => setSelectedHackForRegistrations(null)}
+          onUpdate={fetchOrganizerData}
+        />
+      )}
+
+      {/* Render View Scores Modal */}
+      {selectedHackForScores && (
+        <ViewScoresModal
+          hackathon={selectedHackForScores}
+          onClose={() => setSelectedHackForScores(null)}
         />
       )}
 

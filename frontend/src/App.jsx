@@ -33,7 +33,7 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#08090d' }}>
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1.5rem', marginBottom: 12, color: '#fff' }}>HackForge</div>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1.5rem', marginBottom: 12, color: '#fff' }}>CodeSprint</div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#1b68ff', animation: `pulse 1s ${i * 0.15}s ease-in-out infinite alternate` }} />
@@ -60,35 +60,29 @@ function AppRoutes() {
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
 
-        {/* Protected — Requires Authentication */}
+        {/* Protected — All authenticated roles */}
+        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/repositories" element={<ProtectedRoute><RepositoriesPage /></ProtectedRoute>} />
         <Route path="/repositories/:owner/:repo" element={<ProtectedRoute><RepoTreePage /></ProtectedRoute>} />
         <Route path="/kanban" element={<ProtectedRoute><KanbanPage /></ProtectedRoute>} />
         <Route path="/hackathons" element={<ProtectedRoute><HackathonsPage /></ProtectedRoute>} />
+        <Route path="/hackathons/create" element={<ProtectedRoute><CreateHackathonPage /></ProtectedRoute>} />
         <Route path="/hackathons/:id" element={<ProtectedRoute><HackathonDetailPage /></ProtectedRoute>} />
         <Route path="/hackathons/:id/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+        <Route path="/hackathons/:id/submit" element={<ProtectedRoute><SubmissionPage /></ProtectedRoute>} />
+        <Route path="/hackathons/:id/submission" element={<ProtectedRoute><SubmissionPage /></ProtectedRoute>} />
+        <Route path="/hackathons/:id/edit" element={<ProtectedRoute><CreateHackathonPage /></ProtectedRoute>} />
+        <Route path="/hackathons/:id/registrations" element={<ProtectedRoute><ManageRegistrationsPage /></ProtectedRoute>} />
+        <Route path="/workspace" element={<ProtectedRoute><TeamWorkspacePage /></ProtectedRoute>} />
+        <Route path="/workspace/:teamId" element={<ProtectedRoute><TeamWorkspacePage /></ProtectedRoute>} />
+        <Route path="/my-teams" element={<ProtectedRoute><JoinTeamPage /></ProtectedRoute>} />
         <Route path="/join-team" element={<ProtectedRoute><JoinTeamPage /></ProtectedRoute>} />
-
-        {/* Protected — all roles */}
-        <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-
-        {/* Participant */}
-        <Route path="/teams/:teamId/workspace" element={<ProtectedRoute roles={['participant', 'organizer', 'admin']}><TeamWorkspacePage /></ProtectedRoute>} />
-        <Route path="/hackathons/:id/submission" element={<ProtectedRoute roles={['participant']}><SubmissionPage /></ProtectedRoute>} />
-
-        {/* Organizer */}
-        <Route path="/hackathons/create" element={<ProtectedRoute roles={['organizer', 'admin']}><CreateHackathonPage /></ProtectedRoute>} />
-        <Route path="/hackathons/:id/edit" element={<ProtectedRoute roles={['organizer', 'admin']}><CreateHackathonPage /></ProtectedRoute>} />
-        <Route path="/hackathons/:id/registrations" element={<ProtectedRoute roles={['organizer', 'admin']}><ManageRegistrationsPage /></ProtectedRoute>} />
-
-        {/* Judge */}
-        <Route path="/judge/hackathon/:hackathonId/submissions" element={<ProtectedRoute roles={['judge', 'admin']}><JudgeSubmissionsPage /></ProtectedRoute>} />
-        <Route path="/judge/submissions/:submissionId/review" element={<ProtectedRoute roles={['judge', 'admin']}><ReviewFormPage /></ProtectedRoute>} />
-
-        {/* Admin */}
-        <Route path="/admin/users" element={<ProtectedRoute roles={['admin']}><AdminUsersPage /></ProtectedRoute>} />
+        <Route path="/teams/:teamId/workspace" element={<ProtectedRoute><TeamWorkspacePage /></ProtectedRoute>} />
+        <Route path="/judge/hackathon/:hackathonId/submissions" element={<ProtectedRoute><JudgeSubmissionsPage /></ProtectedRoute>} />
+        <Route path="/judge/submissions/:submissionId/review" element={<ProtectedRoute><ReviewFormPage /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

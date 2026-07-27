@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 export const DottedGlowBackground = ({
   className,
@@ -6,8 +6,8 @@ export const DottedGlowBackground = ({
   radius = 1.8,
   color = "rgba(255, 255, 255, 0.25)",
   darkColor = "rgba(255, 255, 255, 0.25)",
-  glowColor = "rgba(56, 189, 248, 0.95)",
-  darkGlowColor = "rgba(129, 140, 248, 0.95)",
+  glowColor = "rgba(255, 255, 255, 0.6)",
+  darkGlowColor = "rgba(255, 255, 255, 0.6)",
   colorLightVar,
   colorDarkVar,
   glowColorLightVar,

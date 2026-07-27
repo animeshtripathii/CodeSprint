@@ -80,7 +80,7 @@ export default function LoginPage() {
       <div style={{ position: 'relative', minHeight: '100vh', background: '#050507', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 20px', fontFamily: "'Inter', sans-serif", overflow: 'hidden' }}>
         
         {/* Animated Canvas Dotted Glow Background */}
-        <DottedGlowBackground gap={18} radius={1.8} opacity={0.75} color="rgba(255,255,255,0.18)" glowColor="rgba(129, 140, 248, 0.85)" speedMin={0.3} speedMax={1.4} />
+        <DottedGlowBackground gap={18} radius={1.8} opacity={0.75} color="rgba(255,255,255,0.18)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
         {/* Ambient Radial Spotlights */}
         <div style={{ position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(94,106,210,0.15) 0%, transparent 70%)', pointerEvents: 'none', filter: 'blur(70px)' }} />
@@ -92,7 +92,7 @@ export default function LoginPage() {
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
             <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
               <Zap size={22} color="white" strokeWidth={2.5} />
-              <span style={{ color: 'white', fontWeight: 600, fontSize: '1.05rem', letterSpacing: '-0.03em' }}>HackForge</span>
+              <span style={{ color: 'white', fontWeight: 600, fontSize: '1.05rem', letterSpacing: '-0.03em' }}>CodeSprint</span>
             </Link>
           </div>
 

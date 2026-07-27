@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050507' }}>
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1.5rem', marginBottom: 12, color: '#fff' }}>HackForge</div>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '1.5rem', marginBottom: 12, color: '#fff' }}>CodeSprint</div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
         {[0, 1, 2].map(i => (
           <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#5e6ad2', animation: `pulse 1s ${i * 0.15}s ease-in-out infinite alternate` }} />
