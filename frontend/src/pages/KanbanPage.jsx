@@ -30,8 +30,10 @@ import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
+import getSocket from '../services/socket';
+
 const INITIAL_COLUMNS = [
-  { id: 'todo', title: 'To Do', color: '#818cf8', bg: 'rgba(129, 140, 248, 0.12)' },
+  { id: 'todo', title: 'To Do', color: '#ffffff', bg: 'rgba(255, 255, 255, 0.1)' },
   { id: 'in_progress', title: 'In Progress', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.12)' },
   { id: 'review', title: 'Under Review', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.12)' },
   { id: 'done', title: 'Done', color: '#34d399', bg: 'rgba(52, 211, 153, 0.12)' }
@@ -59,24 +61,24 @@ const INITIAL_TASKS = [
   },
   {
     id: 'task-2',
-    title: 'Implement Interactive GitHub File Tree Canvas',
-    description: 'Fetch recursive git tree API and render visual canvas nodes with branch connectors.',
+    title: 'Multi-Role Custom Dashboards (Organizer, Participant, Judge)',
+    description: 'Build high performance role dashboards with live evaluation metrics.',
     status: 'in_progress',
-    priority: 'urgent',
-    assignee: 'Animesh Tripathi',
+    priority: 'high',
+    assignee: 'Rohan Sharma',
     dueDate: '2026-07-27',
     subtasks: [
-      { id: 'st-3', title: 'GitHub Git Trees API fetch', done: true },
-      { id: 'st-4', title: 'SVG Dotted branch lines', done: false }
+      { id: 'st-3', title: 'Organizer Hackathon Manager', done: true },
+      { id: 'st-4', title: 'Judge Evaluation Console & Sparklines', done: true }
     ]
   },
   {
     id: 'task-3',
-    title: 'AI Pitch & Sprint Task Generator',
-    description: 'Integrate Gemini API to validate hackathon ideas and generate Kanban tasks automatically.',
+    title: 'AI Code Review & Pitch Evaluator Integration',
+    description: 'Connect Gemini API endpoint for automated project code summary and pitch analysis.',
     status: 'todo',
     priority: 'medium',
-    assignee: 'Rohan Sharma',
+    assignee: 'Animesh Tripathi',
     dueDate: '2026-07-28',
     subtasks: [
       { id: 'st-5', title: 'Create backend route /api/ai/pitch-check', done: false }
@@ -102,7 +104,7 @@ export default function KanbanPage() {
 
   const [columns, setColumns] = useState(INITIAL_COLUMNS);
   const [tasks, setTasks] = useState(() => {
-    const saved = localStorage.getItem('hackforge_kanban_tasks');
+    const saved = localStorage.getItem('codesprint_kanban_tasks');
     return saved ? JSON.parse(saved) : INITIAL_TASKS;
   });
   const [members, setMembers] = useState(INITIAL_MEMBERS);
@@ -113,7 +115,7 @@ export default function KanbanPage() {
 
   // Chat State
   const [chatMessages, setChatMessages] = useState([
-    { id: 1, sender: 'AI Assistant', isAi: true, text: 'Welcome to HackForge Sprint Kanban! Tag @ai to ask for suggestions or code reviews.' }
+    { id: 1, sender: 'AI Assistant', isAi: true, text: 'Welcome to CodeSprint Sprint Kanban! Tag @ai to ask for suggestions or code reviews.' }
   ]);
   const [chatInput, setChatInput] = useState('');
 
@@ -151,8 +153,47 @@ export default function KanbanPage() {
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('hackforge_kanban_tasks', JSON.stringify(tasks));
+    localStorage.setItem('codesprint_kanban_tasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  // Real-time Socket.io synchronization across team members
+  useEffect(() => {
+    const socket = getSocket();
+    const teamId = 'demo-team-room';
+    socket.emit('joinTeam', teamId);
+
+    const handleTaskCreated = (newTask) => {
+      setTasks(prev => {
+        if (prev.some(t => t.id === newTask.id || t.id === newTask._id)) return prev;
+        return [newTask, ...prev];
+      });
+      logActivity(`Teammate added new task: "${newTask.title}"`);
+      toast.success(`⚡ New task added: ${newTask.title}`, { style: { background: '#090a0f', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' } });
+    };
+
+    const handleTaskUpdated = (updatedTask) => {
+      setTasks(prev => prev.map(t => (t.id === updatedTask.id || t.id === updatedTask._id) ? { ...t, ...updatedTask } : t));
+      const colName = INITIAL_COLUMNS.find(c => c.id === updatedTask.status)?.title || updatedTask.status;
+      logActivity(`Teammate moved task to ${colName}`);
+      toast(`⚡ Task status updated to "${colName}"`, { icon: '🔄', style: { background: '#090a0f', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' } });
+    };
+
+    const handleTaskDeleted = ({ taskId }) => {
+      setTasks(prev => prev.filter(t => t.id !== taskId && t._id !== taskId));
+      logActivity(`Teammate deleted a task`);
+    };
+
+    socket.on('task:created', handleTaskCreated);
+    socket.on('task:updated', handleTaskUpdated);
+    socket.on('task:deleted', handleTaskDeleted);
+
+    return () => {
+      socket.off('task:created', handleTaskCreated);
+      socket.off('task:updated', handleTaskUpdated);
+      socket.off('task:deleted', handleTaskDeleted);
+      socket.emit('leaveTeam', teamId);
+    };
+  }, []);
 
   const logActivity = (actionText) => {
     setActivities(prev => [{ id: Date.now(), text: actionText, time: 'Just now' }, ...prev]);
@@ -367,7 +408,7 @@ export default function KanbanPage() {
       <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto' }}>
         
         {/* Background Glow */}
-        <DottedGlowBackground gap={20} radius={1.8} opacity={0.65} color="rgba(255,255,255,0.15)" glowColor="rgba(129, 140, 248, 0.7)" speedMin={0.3} speedMax={1.4} />
+        <DottedGlowBackground gap={20} radius={1.8} opacity={0.65} color="rgba(255,255,255,0.15)" glowColor="rgba(255, 255, 255, 0.4)" speedMin={0.3} speedMax={1.4} />
 
         {/* Top Header & AI Power Bar */}
         <header style={{
@@ -1101,11 +1142,11 @@ export default function KanbanPage() {
                     {msg.isAi ? <Bot size={13} /> : msg.sender[0]}
                   </div>
                   <div style={{
-                    background: msg.isAi ? 'rgba(129, 140, 248, 0.15)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${msg.isAi ? 'rgba(129, 140, 248, 0.3)' : 'rgba(255,255,255,0.1)'}`,
+                    background: msg.isAi ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${msg.isAi ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255,255,255,0.1)'}`,
                     borderRadius: 10, padding: '8px 12px', maxWidth: '85%'
                   }}>
-                    <div style={{ fontSize: '0.68rem', color: msg.isAi ? '#818cf8' : 'rgba(255,255,255,0.5)', fontWeight: 600, marginBottom: 2 }}>
+                    <div style={{ fontSize: '0.68rem', color: msg.isAi ? '#ffffff' : 'rgba(255,255,255,0.5)', fontWeight: 600, marginBottom: 2 }}>
                       {msg.sender}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#fff', lineHeight: 1.4 }}>
@@ -1236,7 +1277,7 @@ export default function KanbanPage() {
                         <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>{m.email}</div>
                       </div>
                     </div>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#818cf8', background: 'rgba(129, 140, 248, 0.15)', padding: '2px 8px', borderRadius: 99 }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#ffffff', background: 'rgba(255, 255, 255, 0.12)', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '2px 8px', borderRadius: 99 }}>
                       {m.role}
                     </span>
                   </div>

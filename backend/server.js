@@ -22,7 +22,12 @@ const allowedOrigins = [
 
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   },
 });
@@ -44,6 +49,32 @@ io.on('connection', (socket) => {
   socket.on('leaveTeam', (teamId) => {
     socket.leave(teamId);
     console.log(`Socket ${socket.id} left team room: ${teamId}`);
+  });
+
+  // Join a Hackathon Community room (Participants, Organizers, Judges)
+  socket.on('joinHackathon', (hackathonId) => {
+    const room = `hackathon_${hackathonId}`;
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined community room: ${room}`);
+  });
+
+  socket.on('leaveHackathon', (hackathonId) => {
+    const room = `hackathon_${hackathonId}`;
+    socket.leave(room);
+    console.log(`Socket ${socket.id} left community room: ${room}`);
+  });
+
+  // Join a private Judge & Organizer Lounge room
+  socket.on('joinJudgeRoom', (hackathonId) => {
+    const room = `judge_${hackathonId}`;
+    socket.join(room);
+    console.log(`Socket ${socket.id} joined judge room: ${room}`);
+  });
+
+  socket.on('leaveJudgeRoom', (hackathonId) => {
+    const room = `judge_${hackathonId}`;
+    socket.leave(room);
+    console.log(`Socket ${socket.id} left judge room: ${room}`);
   });
 
   socket.on('disconnect', () => {
