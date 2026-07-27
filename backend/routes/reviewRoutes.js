@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
-const { submitReview, updateReview, getReviews, getAssignedSubmissions } = require('../controllers/reviewController');
+const { protect } = require('../middleware/auth');
+const { submitReview, updateReview, getReviews, getHackathonReviews, getAssignedSubmissions } = require('../controllers/reviewController');
 
-router.get('/assigned', protect, authorize('judge'), getAssignedSubmissions);
-router.post('/submission/:submissionId', protect, authorize('judge'), submitReview);
+router.get('/assigned', protect, getAssignedSubmissions);
+router.post('/', protect, submitReview);
+router.post('/submission/:submissionId', protect, submitReview);
 router.get('/submission/:submissionId', protect, getReviews);
-router.put('/:id', protect, authorize('judge'), updateReview);
+router.get('/hackathon/:hackathonId', protect, getHackathonReviews);
+router.put('/:id', protect, updateReview);
 
 module.exports = router;

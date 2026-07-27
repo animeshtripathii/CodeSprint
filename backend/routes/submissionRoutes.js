@@ -6,11 +6,11 @@ const { createSubmission, updateSubmission, getSubmission, listSubmissions, getM
 
 const screenshotUpload = createUploader('submissions', ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'pptx', 'ppt']);
 
-router.post('/', protect, authorize('participant'),
+router.post('/', protect, authorize('participant', 'organizer', 'judge', 'admin'),
   screenshotUpload.fields([{ name: 'screenshots', maxCount: 5 }, { name: 'ppt', maxCount: 1 }]),
   createSubmission
 );
-router.put('/:id', protect, authorize('participant'), updateSubmission);
+router.put('/:id', protect, authorize('participant', 'organizer', 'judge', 'admin'), updateSubmission);
 router.get('/hackathon/:hackathonId', protect, listSubmissions);
 router.get('/my/:hackathonId', protect, authorize('participant'), getMySubmission);
 router.get('/:id', protect, getSubmission);
