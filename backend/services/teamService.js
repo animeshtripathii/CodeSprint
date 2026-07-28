@@ -114,4 +114,40 @@ const getWorkspace = async (teamId, userId) => {
   return { team, tasks, submission, repoTree: team.repoTree };
 };
 
-module.exports = { createTeam, getTeamById, listTeamsByHackathon, addMember, removeMember, transferLeadership, getWorkspace };
+const selfJoin = async (teamId, userId) => {
+  const team = await Team.findById(teamId).populate('hackathon');
+  if (!team) throw new ApiError(404, 'Team not found');
+
+  const maxMembers = team.hackathon?.maxTeamSize || 4;
+  if (team.members.length >= maxMembers) {
+    throw new ApiError(400, `Team is full (max ${maxMembers} members)`);
+  }
+
+  if (team.members.map((m) => m.toString()).includes(userId.toString())) {
+    throw new ApiError(409, 'You are already a member of this team');
+  }
+
+  // Auto-approve registration if not already registered for the hackathon
+  let reg = await Registration.findOne({ participant: userId, hackathon: team.hackathon._id });
+  if (!reg) {
+    reg = await Registration.create({ participant: userId, hackathon: team.hackathon._id, status: 'approved' });
+  } else if (reg.status !== 'approved') {
+    reg.status = 'approved';
+    await reg.save();
+  }
+
+  // Check the user isn't already in another team for this hackathon
+  const existingTeam = await Team.findOne({ hackathon: team.hackathon._id, members: userId, _id: { $ne: teamId } });
+  if (existingTeam) throw new ApiError(409, 'You are already in a different team for this hackathon');
+
+  team.members.push(userId);
+  // Remove from pending invites if they were invited by email
+  const user = await User.findById(userId);
+  if (user?.email) {
+    team.pendingInvites = (team.pendingInvites || []).filter(inv => inv.email.toLowerCase() !== user.email.toLowerCase());
+  }
+  await team.save();
+  return team.populate('leader members', 'name email avatar');
+};
+
+module.exports = { createTeam, getTeamById, listTeamsByHackathon, addMember, removeMember, transferLeadership, getWorkspace, selfJoin };
