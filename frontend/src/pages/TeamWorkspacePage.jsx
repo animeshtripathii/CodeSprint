@@ -944,21 +944,100 @@ export default function TeamWorkspacePage() {
               border: '1px solid rgba(255,255,255,0.12)', height: 520, display: 'flex', flexDirection: 'column'
             }}>
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingRight: 8 }}>
-                {messages.map(m => (
-                  <div key={m._id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: m.isAi ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
-                      {m.isAi ? '🤖' : m.sender?.name?.[0]}
-                    </div>
-                    <div style={{ background: m.isAi ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)', border: `1px solid ${m.isAi ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)'}`, borderRadius: 12, padding: '8px 14px', maxWidth: '80%' }}>
-                      <div style={{ fontSize: '0.7rem', color: m.isAi ? '#ffffff' : 'rgba(255,255,255,0.5)', fontWeight: 600, marginBottom: 2 }}>
-                        {m.sender?.name}
+                {messages.map((m, idx) => {
+                  const senderName = typeof m.sender === 'object' ? m.sender?.name : (m.sender || 'Member');
+                  const senderAvatar = typeof m.sender === 'object' ? m.sender?.avatar : '';
+                  const senderId = typeof m.sender === 'object' ? m.sender?._id : m.sender;
+                  const senderEmail = typeof m.sender === 'object' ? m.sender?.email : '';
+
+                  const isMe = !m.isAi && (
+                    (senderId && user?._id && senderId.toString() === user._id.toString()) ||
+                    (senderEmail && user?.email && senderEmail.toLowerCase() === user.email.toLowerCase()) ||
+                    (senderName && user?.name && senderName.trim().toLowerCase() === user.name.trim().toLowerCase())
+                  );
+
+                  return (
+                    <div
+                      key={m._id || idx}
+                      style={{
+                        display: 'flex',
+                        gap: 10,
+                        alignItems: 'flex-start',
+                        flexDirection: isMe ? 'row-reverse' : 'row',
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          background: m.isAi
+                            ? 'rgba(255,255,255,0.2)'
+                            : isMe
+                            ? 'linear-gradient(135deg, #1b68ff 0%, #5e6ad2 100%)'
+                            : 'rgba(255,255,255,0.14)',
+                          border: isMe ? '1px solid rgba(27, 104, 255, 0.5)' : '1px solid rgba(255,255,255,0.15)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justify: 'center',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: '#fff',
+                          flexShrink: 0,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {m.isAi ? (
+                          '🤖'
+                        ) : senderAvatar ? (
+                          <img src={senderAvatar} alt={senderName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          senderName?.[0]?.toUpperCase() || 'U'
+                        )}
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: '#fff', lineHeight: 1.4 }}>
-                        {m.text}
+
+                      {/* Bubble */}
+                      <div
+                        style={{
+                          maxWidth: '75%',
+                          padding: '9px 14px',
+                          borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          background: m.isAi
+                            ? 'rgba(255, 255, 255, 0.1)'
+                            : isMe
+                            ? 'linear-gradient(135deg, rgba(27, 104, 255, 0.35) 0%, rgba(94, 106, 210, 0.35) 100%)'
+                            : 'rgba(255, 255, 255, 0.05)',
+                          border: m.isAi
+                            ? '1px solid rgba(255, 255, 255, 0.2)'
+                            : isMe
+                            ? '1px solid rgba(27, 104, 255, 0.45)'
+                            : '1px solid rgba(255, 255, 255, 0.08)',
+                          boxShadow: isMe ? '0 2px 10px rgba(27, 104, 255, 0.2)' : 'none',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '0.68rem',
+                            color: m.isAi
+                              ? '#ffffff'
+                              : isMe
+                              ? 'rgba(255, 255, 255, 0.7)'
+                              : 'rgba(255, 255, 255, 0.5)',
+                            fontWeight: 600,
+                            marginBottom: 2,
+                            textAlign: isMe ? 'right' : 'left',
+                          }}
+                        >
+                          {m.isAi ? 'AI Assistant 🤖' : isMe ? 'You' : senderName}
+                        </div>
+                        <div style={{ fontSize: '0.84rem', color: '#fff', lineHeight: 1.45, wordBreak: 'break-word' }}>
+                          {m.text}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={chatEndRef} />
               </div>
 
