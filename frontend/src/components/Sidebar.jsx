@@ -18,6 +18,7 @@ import {
   Search,
   Shield,
   LogOut,
+  ChevronLeft,
   ChevronRight,
   Sliders,
   User
@@ -41,6 +42,15 @@ export default function Sidebar() {
   const [projectTab, setProjectTab] = useState('creations');
   const [githubConnected, setGithubConnected] = useState(false);
   const [userHackathons, setUserHackathons] = useState([]);
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const role = user?.role || 'participant';
   const isActive = (to) => location.pathname === to;
@@ -108,38 +118,67 @@ export default function Sidebar() {
 
   return (
     <aside style={{
-      width: 250, flexShrink: 0, background: 'rgba(9, 10, 15, 0.92)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+      width: isCollapsed ? 76 : 250, flexShrink: 0,
+      background: 'rgba(9, 10, 15, 0.94)', backdropFilter: 'blur(24px) saturate(180%)', WebkitBackdropFilter: 'blur(24px) saturate(180%)',
       borderRight: '1px solid rgba(255,255,255,0.08)',
       display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0,
-      padding: '16px 14px', boxSizing: 'border-box', overflowY: 'auto'
+      padding: isCollapsed ? '16px 8px' : '16px 14px', boxSizing: 'border-box', overflowY: 'auto',
+      transition: 'width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s ease'
     }}>
       
-      {/* ── Brand Logo ── */}
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', marginBottom: 14, textDecoration: 'none' }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 16px rgba(255,255,255,0.3)'
-        }}>
-          <Zap size={16} color="#060709" strokeWidth={2.5} />
-        </div>
-        <div>
-          <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', display: 'block', lineHeight: 1 }}>
-            CodeSprint
-          </span>
-          <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2, display: 'block' }}>
-            {roleLabel}
-          </span>
-        </div>
-      </Link>
+      {/* ── Brand Header & Toggle Button ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: '6px 4px', marginBottom: 14 }}>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', overflow: 'hidden' }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg, #ffffff, #cbd5e1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            boxShadow: '0 0 16px rgba(255,255,255,0.3)'
+          }}>
+            <Zap size={16} color="#060709" strokeWidth={2.5} />
+          </div>
+          {!isCollapsed && (
+            <div style={{ whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff', letterSpacing: '-0.02em', display: 'block', lineHeight: 1 }}>
+                CodeSprint
+              </span>
+              <span style={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600, marginTop: 2, display: 'block' }}>
+                {roleLabel}
+              </span>
+            </div>
+          )}
+        </Link>
+
+        {/* Sidebar Collapse Toggle Button */}
+        <button
+          onClick={toggleCollapse}
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 8,
+            width: 28, height: 28,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'rgba(255,255,255,0.8)', cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            flexShrink: 0,
+            marginLeft: isCollapsed ? 0 : 6
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+      </div>
 
       {/* ── User Profile Card (Clickable to /profile) ── */}
       <Link
         to="/profile"
+        title={isCollapsed ? `${user?.name || 'User'} (${role})` : ''}
         style={{
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)',
           boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
-          borderRadius: 16, padding: '10px 12px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 10,
+          borderRadius: 16, padding: isCollapsed ? '10px 6px' : '10px 12px', marginBottom: 18,
+          display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 10,
           textDecoration: 'none', transition: 'all 0.15s ease'
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.22)'; }}
@@ -152,14 +191,16 @@ export default function Sidebar() {
           {user?.name?.[0]?.toUpperCase() || 'A'}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.name || 'User'}
+        {!isCollapsed && (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.name || 'User'}
+            </div>
+            <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>
+              {role} Role · View Profile ↗
+            </div>
           </div>
-          <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', textTransform: 'capitalize' }}>
-            {role} Role · View Profile ↗
-          </div>
-        </div>
+        )}
       </Link>
 
       {/* ── Main Role-based Navigation List ── */}
@@ -168,8 +209,10 @@ export default function Sidebar() {
           <Link
             key={item.to + item.label}
             to={item.to}
+            title={isCollapsed ? item.label : ''}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 12,
+              display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 10,
+              padding: isCollapsed ? '10px 0' : '9px 12px', borderRadius: 12,
               fontSize: '0.84rem', fontWeight: 600, textDecoration: 'none',
               background: isActive(item.to) ? 'rgba(255,255,255,0.12)' : 'transparent',
               border: isActive(item.to) ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent',
@@ -178,16 +221,16 @@ export default function Sidebar() {
             }}
           >
             {item.icon}
-            <span>{item.label}</span>
+            {!isCollapsed && <span>{item.label}</span>}
           </Link>
         ))}
       </div>
 
       {/* ── Role-Specific AI Tools Section ── */}
-      <div style={{ marginBottom: 20, padding: '12px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.65rem', color: '#ffffff', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+      <div style={{ marginBottom: 20, padding: isCollapsed ? '10px 6px' : '12px 10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: 6, fontSize: '0.65rem', color: '#ffffff', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
           <Sparkles size={13} />
-          <span>{role.toUpperCase()} AI ASSISTANTS</span>
+          {!isCollapsed && <span>{role.toUpperCase()} AI ASSISTANTS</span>}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -195,23 +238,30 @@ export default function Sidebar() {
             <button
               key={t.label}
               onClick={t.action}
+              title={isCollapsed ? `${t.label} - ${t.desc}` : ''}
               style={{
-                width: '100%', padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.15s'
+                width: '100%', padding: isCollapsed ? '8px 0' : '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)', color: '#fff', cursor: 'pointer', textAlign: isCollapsed ? 'center' : 'left',
+                transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: isCollapsed ? 'center' : 'flex-start'
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
             >
-              <div style={{ fontWeight: 600, fontSize: '0.74rem', color: '#fff' }}>{t.label}</div>
-              <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{t.desc}</div>
+              {isCollapsed ? (
+                <Sparkles size={14} color="#a78bfa" />
+              ) : (
+                <>
+                  <div style={{ fontWeight: 600, fontSize: '0.74rem', color: '#fff' }}>{t.label}</div>
+                  <div style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.45)', marginTop: 1 }}>{t.desc}</div>
+                </>
+              )}
             </button>
           ))}
         </div>
       </div>
 
       {/* ── Role Projects / Quick Access Section ── */}
-      {role === 'organizer' && (
+      {role === 'organizer' && !isCollapsed && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>
             ── MANAGED HACKATHONS ──
@@ -244,7 +294,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {role === 'judge' && (
+      {role === 'judge' && !isCollapsed && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>
             ── JUDGE ACTION HUB ──
@@ -261,7 +311,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      {role === 'participant' && (
+      {role === 'participant' && !isCollapsed && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
             <span>── MY PROJECTS ──</span>

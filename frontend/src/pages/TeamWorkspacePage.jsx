@@ -1562,6 +1562,10 @@ export default function TeamWorkspacePage() {
               <FiPaperclip size={14} />
               <span>Copy Direct Join Link</span>
             </button>
+          </div>
+        </div>
+      )}
+
       {/* AI Workload Analysis Modal */}
       {showWorkloadModal && (
         <div style={{
