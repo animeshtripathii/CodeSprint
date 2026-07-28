@@ -98,6 +98,26 @@ const deleteTask = async (taskId, userId) => {
   return task;
 };
 
+const updateTask = async (taskId, userId, updateData) => {
+  const task = await Task.findById(taskId).populate('team');
+  if (!task) throw new ApiError(404, 'Task not found');
+  if (!isMember(task.team, userId)) throw new ApiError(403, 'Not authorized — must be a team member');
+
+  const fields = ['title', 'description', 'status', 'priority', 'dueDate', 'subtasks', 'assignedTo'];
+  fields.forEach(field => {
+    if (updateData[field] !== undefined) {
+      if (field === 'assignedTo') {
+        task.assignedTo = (updateData.assignedTo && typeof updateData.assignedTo === 'string' && updateData.assignedTo.trim() !== '') ? updateData.assignedTo.trim() : null;
+      } else {
+        task[field] = updateData[field];
+      }
+    }
+  });
+
+  await task.save();
+  return task.populate('assignedTo createdBy', 'name avatar email');
+};
+
 const getCalendarData = async (teamId, userId) => {
   const team = await Team.findById(teamId);
   if (!team) throw new ApiError(404, 'Team not found');
@@ -116,4 +136,4 @@ const getCalendarData = async (teamId, userId) => {
   }));
 };
 
-module.exports = { createTask, bulkCreateTasks, listByTeam, updateTaskStatus, assignTask, deleteTask, getCalendarData };
+module.exports = { createTask, bulkCreateTasks, listByTeam, updateTaskStatus, updateTask, assignTask, deleteTask, getCalendarData };

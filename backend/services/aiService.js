@@ -151,4 +151,49 @@ Be direct, highlight risks, and keep it under 80 words. No markdown.`;
   return generateText(prompt);
 };
 
-module.exports = { validateIdea, summarizeSubmission, generateTasks, generateJudgeFeedback, chatAssistant, boardSummary };
+/**
+ * 7. AI Subtask Breakdown — generate 3-5 subtask checklist items for a task
+ */
+const subtaskBreakdown = async ({ title, description }) => {
+  const prompt = `
+Break down the following task into 3 to 5 actionable checklist subtasks.
+
+Task Title: "${title}"
+Description: "${description || 'No description'}"
+
+Respond ONLY with a JSON array of strings representing the subtask titles, for example:
+["Design database schema", "Write migration script", "Add indexes"]
+Do NOT include markdown formatting or extra text.`;
+
+  const text = await generateText(prompt);
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.map((item) => (typeof item === 'string' ? item : item.title || String(item)));
+    }
+  } catch (e) {
+    // Fallback if parsing fails
+  }
+  return [
+    `Setup initial scope for ${title}`,
+    `Implement core execution & tests`,
+    `Review & verify completion`,
+  ];
+};
+
+/**
+ * 8. AI Workload Analysis — analyze task distribution across team members
+ */
+const workloadAnalysis = async ({ teamName, memberWorkloads }) => {
+  const prompt = `
+Analyze the workload distribution for team "${teamName}" and suggest optimization recommendations.
+
+Member Workloads: ${JSON.stringify(memberWorkloads)}
+
+Give 3 short bullet points (max 100 words total) summarizing balance, bottlenecks, and recommendations.`;
+
+  return generateText(prompt);
+};
+
+module.exports = { validateIdea, summarizeSubmission, generateTasks, generateJudgeFeedback, chatAssistant, boardSummary, subtaskBreakdown, workloadAnalysis };

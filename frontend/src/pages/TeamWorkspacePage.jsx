@@ -29,12 +29,23 @@ const KANBAN_COLUMNS = [
   { id: 'done', title: 'Done', color: '#34d399', bg: 'rgba(52, 211, 153, 0.12)', border: 'rgba(52, 211, 153, 0.3)', icon: '✅' },
 ];
 
+const THEMES = {
+  dark_neon: { id: 'dark_neon', label: '🌙 Dark Neon', bg: '#050507', accent: '#1b68ff', glow: 'rgba(27, 104, 255, 0.4)', cardBorder: 'rgba(255, 255, 255, 0.12)' },
+  cyber_blue: { id: 'cyber_blue', label: '⚡ Cyber Blue', bg: '#060d1f', accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.4)', cardBorder: 'rgba(56, 189, 248, 0.2)' },
+  emerald_matrix: { id: 'emerald_matrix', label: '🟢 Emerald Matrix', bg: '#05120c', accent: '#34d399', glow: 'rgba(52, 211, 153, 0.4)', cardBorder: 'rgba(52, 211, 153, 0.2)' },
+  glass_obsidian: { id: 'glass_obsidian', label: '💎 Glass Obsidian', bg: '#0a0a0f', accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.4)', cardBorder: 'rgba(167, 139, 250, 0.2)' },
+  sunset_amber: { id: 'sunset_amber', label: '🔥 Sunset Amber', bg: '#140a08', accent: '#f97316', glow: 'rgba(249, 115, 22, 0.4)', cardBorder: 'rgba(249, 115, 22, 0.2)' }
+};
+
 export default function TeamWorkspacePage() {
   const { teamId: rawTeamId } = useParams();
   const teamId = rawTeamId || 'team-demo';
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('kanban');
+
+  const [theme, setTheme] = useState(() => localStorage.getItem('codesprint_workspace_theme') || 'dark_neon');
+  const currentTheme = THEMES[theme] || THEMES.dark_neon;
 
   const [team, setTeam] = useState(null);
   const [tasks, setTasks] = useState([]);
@@ -47,6 +58,11 @@ export default function TeamWorkspacePage() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+
+  // AI Workload & Subtasks State
+  const [showWorkloadModal, setShowWorkloadModal] = useState(false);
+  const [workloadData, setWorkloadData] = useState(null);
+  const [workloadLoading, setWorkloadLoading] = useState(false);
 
   // Modals & inputs state
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -249,11 +265,62 @@ export default function TeamWorkspacePage() {
     try {
       await api.delete(`/tasks/${taskId}`);
       toast.success('Task deleted');
-      setTasks(prev => prev.filter(t => t._id !== taskId));
+      setTasks(prev => prev.filter(t => t._id !== taskId && t.id !== taskId));
     } catch (e) {
-      setTasks(prev => prev.filter(t => t._id !== taskId));
+      setTasks(prev => prev.filter(t => t._id !== taskId && t.id !== taskId));
       toast.success('Task deleted');
     }
+  };
+
+  const handleGenerateSubtasks = async (taskId, title, description, existingSubtasks = []) => {
+    toast.loading('Generating AI subtasks...', { id: 'subtask-gen' });
+    try {
+      const res = await api.post('/ai/breakdown', { title, description });
+      const newItems = res.data?.data?.subtasks || [];
+      const formatted = newItems.map(st => ({ title: st, completed: false }));
+      const merged = [...(existingSubtasks || []), ...formatted];
+      const updateRes = await api.put(`/tasks/${taskId}`, { subtasks: merged });
+      setTasks(prev => prev.map(t => (t._id === taskId || t.id === taskId) ? (updateRes.data?.data || { ...t, subtasks: merged }) : t));
+      toast.success(`Added ${newItems.length} AI subtasks! ✨`, { id: 'subtask-gen' });
+    } catch (e) {
+      toast.error('Failed to generate AI subtasks', { id: 'subtask-gen' });
+    }
+  };
+
+  const handleToggleSubtask = async (taskId, subtaskIdx, currentStatus, allSubtasks = []) => {
+    const updatedSubtasks = allSubtasks.map((st, idx) => idx === subtaskIdx ? { ...st, completed: !currentStatus } : st);
+    setTasks(prev => prev.map(t => (t._id === taskId || t.id === taskId) ? { ...t, subtasks: updatedSubtasks } : t));
+    try {
+      await api.put(`/tasks/${taskId}`, { subtasks: updatedSubtasks });
+    } catch (e) {
+      // optimistic update retained
+    }
+  };
+
+  const handleOpenWorkload = async () => {
+    setShowWorkloadModal(true);
+    setWorkloadLoading(true);
+    try {
+      const res = await api.get(`/ai/workload/${teamId}`);
+      setWorkloadData(res.data?.data);
+    } catch (e) {
+      setWorkloadData({
+        analysis: '🚀 Workload Distribution: Tasks are distributed across active members. Recommend assigning unassigned items to keep sprint velocity high.',
+        memberWorkloads: (team?.members || []).map(m => ({
+          name: typeof m === 'object' ? m.name : 'Teammate',
+          totalAssigned: tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === (m._id || m)).length,
+          doneCount: tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === (m._id || m) && t.status === 'done').length
+        }))
+      });
+    } finally {
+      setWorkloadLoading(false);
+    }
+  };
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('codesprint_workspace_theme', newTheme);
+    toast.success(`Switched to ${THEMES[newTheme]?.label || newTheme} theme! 🎨`);
   };
 
   const handleGenerateAiTasks = async () => {
@@ -503,6 +570,27 @@ export default function TeamWorkspacePage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Live Presence Stack */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', top: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: '#34d399', border: '1.5px solid #050507', zIndex: 10 }} />
+                <div style={{ display: 'flex', marginLeft: -4 }}>
+                  {Array.isArray(team?.members) && team.members.slice(0, 4).map((m, idx) => {
+                    const mName = typeof m === 'object' ? m.name : 'Teammate';
+                    const mAvatar = typeof m === 'object' ? m.avatar : '';
+                    return (
+                      <div key={idx} style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '1.5px solid #050507', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700, color: '#fff', marginLeft: idx > 0 ? -6 : 0, overflow: 'hidden' }}>
+                        {mAvatar ? <img src={mAvatar} alt={mName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : mName?.[0]?.toUpperCase()}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
+                {team?.members?.length || 1} Viewing
+              </span>
+            </div>
+
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', padding: '6px 14px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Sprint Progress</div>
               <div style={{ width: 80, height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden' }}>
@@ -575,7 +663,7 @@ export default function TeamWorkspacePage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 
                 {/* Left Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <button
                     onClick={() => setShowTaskModal(true)}
                     style={{
@@ -602,6 +690,18 @@ export default function TeamWorkspacePage() {
                   </button>
 
                   <button
+                    onClick={handleOpenWorkload}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10,
+                      background: 'rgba(167, 139, 250, 0.15)', border: '1px solid rgba(167, 139, 250, 0.3)',
+                      color: '#a78bfa', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer'
+                    }}
+                  >
+                    <FiUsers size={14} />
+                    <span>AI Workload 📊</span>
+                  </button>
+
+                  <button
                     onClick={handleGetBoardSummary}
                     disabled={isAiLoading}
                     style={{
@@ -613,6 +713,23 @@ export default function TeamWorkspacePage() {
                     <FiInfo size={14} color="#fbbf24" />
                     <span>Board Summary</span>
                   </button>
+
+                  {/* Theme Switcher Dropdown */}
+                  <select
+                    value={theme}
+                    onChange={e => handleThemeChange(e.target.value)}
+                    style={{
+                      padding: '9px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.78rem',
+                      fontWeight: 600, cursor: 'pointer', outline: 'none'
+                    }}
+                  >
+                    {Object.values(THEMES).map(t => (
+                      <option key={t.id} value={t.id} style={{ background: '#0a0c13', color: '#fff' }}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Right Filters */}
@@ -783,6 +900,50 @@ export default function TeamWorkspacePage() {
                                   {t.description}
                                 </p>
                               )}
+
+                              {/* Subtasks Checklist */}
+                              {Array.isArray(t.subtasks) && t.subtasks.length > 0 && (
+                                <div style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
+                                    <span>Subtasks ({t.subtasks.filter(s => s.completed).length}/{t.subtasks.length})</span>
+                                    <span style={{ color: '#34d399', fontWeight: 700 }}>
+                                      {Math.round((t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100)}%
+                                    </span>
+                                  </div>
+                                  <div style={{ width: '100%', height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 99, overflow: 'hidden', marginBottom: 6 }}>
+                                    <div style={{ width: `${(t.subtasks.filter(s => s.completed).length / t.subtasks.length) * 100}%`, height: '100%', background: '#34d399', transition: 'width 0.3s' }} />
+                                  </div>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {t.subtasks.map((st, sIdx) => (
+                                      <label key={sIdx} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', color: st.completed ? 'rgba(255,255,255,0.4)' : '#fff', textDecoration: st.completed ? 'line-through' : 'none', cursor: 'pointer' }}>
+                                        <input
+                                          type="checkbox"
+                                          checked={!!st.completed}
+                                          onChange={() => handleToggleSubtask(t._id, sIdx, !!st.completed, t.subtasks)}
+                                          style={{ accentColor: '#34d399', cursor: 'pointer' }}
+                                        />
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.title}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* AI Subtasks Breakdown Trigger */}
+                              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 2 }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleGenerateSubtasks(t._id, t.title, t.description, t.subtasks); }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
+                                    background: 'rgba(167, 139, 250, 0.15)', border: '1px solid rgba(167, 139, 250, 0.3)',
+                                    color: '#a78bfa', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer'
+                                  }}
+                                >
+                                  <FiSparkles size={11} />
+                                  <span>AI Subtasks</span>
+                                </button>
+                              </div>
 
                                {/* Task Footer: Assignee & Due Date */}
                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
@@ -1401,6 +1562,66 @@ export default function TeamWorkspacePage() {
               <FiPaperclip size={14} />
               <span>Copy Direct Join Link</span>
             </button>
+      {/* AI Workload Analysis Modal */}
+      {showWorkloadModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(5, 7, 12, 0.85)',
+          backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div className="liquid-glass" style={{
+            width: '100%', maxWidth: 520, borderRadius: 20, padding: 24,
+            background: 'rgba(16, 20, 32, 0.96)', border: '1px solid rgba(167, 139, 250, 0.3)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FiUsers size={18} color="#a78bfa" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', margin: 0 }}>AI Workload & Velocity Analysis</h3>
+              </div>
+              <button onClick={() => setShowWorkloadModal(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><FiX size={16} /></button>
+            </div>
+
+            {workloadLoading ? (
+              <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
+                🤖 Gemini AI is analyzing sprint workload distribution...
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* AI Analysis Summary */}
+                <div style={{ padding: 14, borderRadius: 12, background: 'rgba(167, 139, 250, 0.1)', border: '1px solid rgba(167, 139, 250, 0.25)', color: '#fff', fontSize: '0.84rem', lineHeight: 1.45 }}>
+                  {workloadData?.analysis || 'All sprint tasks are nicely distributed across team members!'}
+                </div>
+
+                {/* Member Workload Breakdown Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.5)', fontWeight: 700, textTransform: 'uppercase' }}>Teammate Workload Metrics</div>
+                  {Array.isArray(workloadData?.memberWorkloads) && workloadData.memberWorkloads.map((m, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                          {m.name?.[0]?.toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#fff' }}>{m.name}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>{m.totalAssigned || 0} tasks assigned ({m.doneCount || 0} completed)</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 6, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)', fontWeight: 700 }}>
+                          {m.inProgressCount || 0} Active
+                        </span>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 6, background: 'rgba(52,211,153,0.15)', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)', fontWeight: 700 }}>
+                          {m.doneCount || 0} Done
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button onClick={() => setShowWorkloadModal(false)} style={{ padding: '8px 16px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>Close</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

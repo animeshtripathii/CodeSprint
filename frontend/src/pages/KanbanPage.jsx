@@ -32,6 +32,14 @@ import toast from 'react-hot-toast';
 
 import getSocket from '../services/socket';
 
+const THEMES = {
+  dark_neon: { id: 'dark_neon', label: '🌙 Dark Neon', bg: '#050507', accent: '#1b68ff', glow: 'rgba(27, 104, 255, 0.4)' },
+  cyber_blue: { id: 'cyber_blue', label: '⚡ Cyber Blue', bg: '#060d1f', accent: '#38bdf8', glow: 'rgba(56, 189, 248, 0.4)' },
+  emerald_matrix: { id: 'emerald_matrix', label: '🟢 Emerald Matrix', bg: '#05120c', accent: '#34d399', glow: 'rgba(52, 211, 153, 0.4)' },
+  glass_obsidian: { id: 'glass_obsidian', label: '💎 Glass Obsidian', bg: '#0a0a0f', accent: '#a78bfa', glow: 'rgba(167, 139, 250, 0.4)' },
+  sunset_amber: { id: 'sunset_amber', label: '🔥 Sunset Amber', bg: '#140a08', accent: '#f97316', glow: 'rgba(249, 115, 22, 0.4)' }
+};
+
 const INITIAL_COLUMNS = [
   { id: 'todo', title: 'To Do', color: '#ffffff', bg: 'rgba(255, 255, 255, 0.1)' },
   { id: 'in_progress', title: 'In Progress', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.12)' },
@@ -101,6 +109,8 @@ const INITIAL_TASKS = [
 
 export default function KanbanPage() {
   const { user } = useAuth();
+  const [theme, setTheme] = useState(() => localStorage.getItem('codesprint_kanban_theme') || 'dark_neon');
+  const currentTheme = THEMES[theme] || THEMES.dark_neon;
 
   const [columns, setColumns] = useState(INITIAL_COLUMNS);
   const [tasks, setTasks] = useState(() => {
@@ -503,6 +513,28 @@ export default function KanbanPage() {
               <Sparkles size={14} color="#060709" />
               <span>AI Task Generator</span>
             </button>
+
+            {/* Theme Selector */}
+            <select
+              value={theme}
+              onChange={e => {
+                const newTheme = e.target.value;
+                setTheme(newTheme);
+                localStorage.setItem('codesprint_kanban_theme', newTheme);
+                toast.success(`Switched to ${THEMES[newTheme]?.label || newTheme} theme! 🎨`);
+              }}
+              style={{
+                padding: '8px 12px', borderRadius: 9, background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.78rem',
+                fontWeight: 600, cursor: 'pointer', outline: 'none'
+              }}
+            >
+              {Object.values(THEMES).map(t => (
+                <option key={t.id} value={t.id} style={{ background: '#0a0c13', color: '#fff' }}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </div>
         </header>
 

@@ -171,4 +171,39 @@ router.get('/board-summary/:teamId', protect, rateLimit, asyncHandler(async (req
   return res.status(200).json(new ApiResponse(200, { summary, taskStats, overdueTasks }, 'Board summary'));
 }));
 
+/**
+ * POST /api/ai/breakdown
+ */
+router.post('/breakdown', protect, rateLimit, asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  if (!title) return res.status(400).json({ success: false, message: 'Task title is required' });
+  const subtasks = await aiService.subtaskBreakdown({ title, description });
+  return res.status(200).json(new ApiResponse(200, { subtasks }, 'Subtasks generated'));
+}));
+
+/**
+ * GET /api/ai/workload/:teamId
+ */
+router.get('/workload/:teamId', protect, rateLimit, asyncHandler(async (req, res) => {
+  const team = await Team.findById(req.params.teamId).populate('members', 'name email avatar');
+  if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+
+  const tasks = await Task.find({ team: req.params.teamId }).populate('assignedTo', 'name email');
+  const memberWorkloads = team.members.map((m) => {
+    const memberTasks = tasks.filter((t) => t.assignedTo && t.assignedTo._id.toString() === m._id.toString());
+    return {
+      memberId: m._id,
+      name: m.name,
+      email: m.email,
+      totalAssigned: memberTasks.length,
+      todoCount: memberTasks.filter((t) => t.status === 'todo').length,
+      inProgressCount: memberTasks.filter((t) => t.status === 'in_progress').length,
+      doneCount: memberTasks.filter((t) => t.status === 'done').length,
+    };
+  });
+
+  const analysis = await aiService.workloadAnalysis({ teamName: team.name, memberWorkloads });
+  return res.status(200).json(new ApiResponse(200, { analysis, memberWorkloads }, 'Workload analyzed'));
+}));
+
 module.exports = router;

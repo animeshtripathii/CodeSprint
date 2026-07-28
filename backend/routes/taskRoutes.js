@@ -36,8 +36,14 @@ router.get('/team/:teamId/calendar', protect, asyncHandler(async (req, res) => {
 
 router.patch('/:id/status', protect, asyncHandler(async (req, res) => {
   const task = await taskService.updateTaskStatus(req.params.id, req.user._id, req.body.status);
-  emitTaskEvent(req, task.team.toString(), 'task:updated', task);
+  emitTaskEvent(req, task.team, 'task:updated', task);
   return res.status(200).json(new ApiResponse(200, task, 'Status updated'));
+}));
+
+router.put('/:id', protect, asyncHandler(async (req, res) => {
+  const task = await taskService.updateTask(req.params.id, req.user._id, req.body);
+  emitTaskEvent(req, task.team, 'task:updated', task);
+  return res.status(200).json(new ApiResponse(200, task, 'Task updated'));
 }));
 
 router.patch('/:id/assign', protect, asyncHandler(async (req, res) => {

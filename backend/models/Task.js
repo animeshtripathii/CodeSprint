@@ -35,18 +35,24 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['todo', 'in_progress', 'done'],
+      enum: ['todo', 'in_progress', 'review', 'done'],
       default: 'todo',
     },
     priority: {
       type: String,
-      enum: ['low', 'medium', 'high'],
+      enum: ['low', 'medium', 'high', 'urgent'],
       default: 'medium',
     },
     dueDate: {
       type: Date,
       default: null,
     },
+    subtasks: [
+      {
+        title: { type: String, required: true },
+        completed: { type: Boolean, default: false },
+      },
+    ],
     // AI suggestion metadata
     aiGenerated: {
       type: Boolean,
