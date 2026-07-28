@@ -196,4 +196,95 @@ Give 3 short bullet points (max 100 words total) summarizing balance, bottleneck
   return generateText(prompt);
 };
 
-module.exports = { validateIdea, summarizeSubmission, generateTasks, generateJudgeFeedback, chatAssistant, boardSummary, subtaskBreakdown, workloadAnalysis };
+/**
+ * 9. AI Task Detail Auto-Analyzer — priority, effort estimate & tech tags
+ */
+const analyzeTaskDetails = async ({ title, description }) => {
+  const prompt = `
+Analyze the following development task and determine its priority, effort estimate, and tech tags.
+
+Task Title: "${title}"
+Description: "${description || 'No description'}"
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "priority": "low" | "medium" | "high" | "urgent",
+  "effortEstimate": "1-2 hours",
+  "tags": ["Frontend", "API"],
+  "subtasks": ["Subtask 1", "Subtask 2"]
+}
+Do NOT include extra markdown formatting.`;
+
+  const text = await generateText(prompt);
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+  } catch (e) {
+    // fallback
+  }
+  return {
+    priority: title.toLowerCase().includes('fix') || title.toLowerCase().includes('bug') ? 'high' : 'medium',
+    effortEstimate: '2-3 hours',
+    tags: ['Development', 'Feature'],
+    subtasks: [`Setup initial code for ${title}`, `Test and verify implementation`]
+  };
+};
+
+/**
+ * 10. AI Task Blocker Resolver — step by step guidance for stuck tasks
+ */
+const resolveTaskBlocker = async ({ title, description, status }) => {
+  const prompt = `
+Provide 3 quick actionable troubleshooting steps for a developer stuck on this task:
+
+Task: "${title}"
+Status: "${status}"
+Details: "${description || 'No details provided'}"
+
+Keep it under 100 words, formatted as bullet points. Be technical, helpful, and concise.`;
+
+  return generateText(prompt);
+};
+
+/**
+ * 11. AI Repo-to-Tasks Generator
+ */
+const generateRepoTasks = async ({ repoName, files = [] }) => {
+  const prompt = `
+Generate 4 structured sprint Kanban tasks for a software project based on these repository files:
+Repository: "${repoName}"
+Files/Modules: ${JSON.stringify(files.slice(0, 10))}
+
+Respond ONLY with a JSON array of task objects:
+[
+  { "title": "Task title", "description": "Brief description", "priority": "high", "effortEstimate": "2 hours" }
+]`;
+
+  const text = await generateText(prompt);
+  try {
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    // fallback
+  }
+  return [
+    { title: 'Refactor Core Components', description: 'Optimize performance and component modularity.', priority: 'medium', effortEstimate: '3 hours' },
+    { title: 'Write Integration Tests', description: 'Add end-to-end API test suites.', priority: 'high', effortEstimate: '4 hours' }
+  ];
+};
+
+module.exports = {
+  validateIdea,
+  summarizeSubmission,
+  generateTasks,
+  generateJudgeFeedback,
+  chatAssistant,
+  boardSummary,
+  subtaskBreakdown,
+  workloadAnalysis,
+  analyzeTaskDetails,
+  resolveTaskBlocker,
+  generateRepoTasks
+};

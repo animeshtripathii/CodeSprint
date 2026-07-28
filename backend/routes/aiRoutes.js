@@ -206,4 +206,24 @@ router.get('/workload/:teamId', protect, rateLimit, asyncHandler(async (req, res
   return res.status(200).json(new ApiResponse(200, { analysis, memberWorkloads }, 'Workload analyzed'));
 }));
 
+/**
+ * POST /api/ai/analyze-task
+ */
+router.post('/analyze-task', protect, rateLimit, asyncHandler(async (req, res) => {
+  const { title, description } = req.body;
+  if (!title) return res.status(400).json({ success: false, message: 'Task title is required' });
+  const result = await aiService.analyzeTaskDetails({ title, description });
+  return res.status(200).json(new ApiResponse(200, result, 'Task analyzed'));
+}));
+
+/**
+ * POST /api/ai/resolve-blocker
+ */
+router.post('/resolve-blocker', protect, rateLimit, asyncHandler(async (req, res) => {
+  const { title, description, status } = req.body;
+  if (!title) return res.status(400).json({ success: false, message: 'Task title is required' });
+  const steps = await aiService.resolveTaskBlocker({ title, description, status });
+  return res.status(200).json(new ApiResponse(200, { steps }, 'Blocker resolution steps generated'));
+}));
+
 module.exports = router;

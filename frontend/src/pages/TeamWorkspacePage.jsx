@@ -64,6 +64,13 @@ export default function TeamWorkspacePage() {
   const [workloadData, setWorkloadData] = useState(null);
   const [workloadLoading, setWorkloadLoading] = useState(false);
 
+  // AI Blocker & Auto-Analyze State
+  const [blockerModalOpen, setBlockerModalOpen] = useState(false);
+  const [blockerTask, setBlockerTask] = useState(null);
+  const [blockerSteps, setBlockerSteps] = useState('');
+  const [blockerLoading, setBlockerLoading] = useState(false);
+  const [isAutoAnalyzing, setIsAutoAnalyzing] = useState(false);
+
   // Modals & inputs state
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({
@@ -321,6 +328,49 @@ export default function TeamWorkspacePage() {
     setTheme(newTheme);
     localStorage.setItem('codesprint_workspace_theme', newTheme);
     toast.success(`Switched to ${THEMES[newTheme]?.label || newTheme} theme! 🎨`);
+  };
+
+  const handleResolveBlocker = async (task) => {
+    setBlockerTask(task);
+    setBlockerModalOpen(true);
+    setBlockerLoading(true);
+    try {
+      const res = await api.post('/ai/resolve-blocker', {
+        title: task.title,
+        description: task.description,
+        status: task.status
+      });
+      setBlockerSteps(res.data?.data?.steps || 'Focus on breaking down the issue into smaller unit tests.');
+    } catch (e) {
+      setBlockerSteps('⚡ Step 1: Check browser/server logs for runtime exceptions.\n⚡ Step 2: Verify API endpoint authentication headers.\n⚡ Step 3: Test with isolated mock payload.');
+    } finally {
+      setBlockerLoading(false);
+    }
+  };
+
+  const handleAutoAnalyzeTask = async () => {
+    if (!taskForm.title.trim()) return toast.error('Enter a task title first to auto-analyze');
+    setIsAutoAnalyzing(true);
+    toast.loading('Analyzing task complexity & priority...', { id: 'auto-analyze' });
+    try {
+      const res = await api.post('/ai/analyze-task', {
+        title: taskForm.title,
+        description: taskForm.description
+      });
+      const data = res.data?.data;
+      if (data) {
+        setTaskForm(prev => ({
+          ...prev,
+          priority: data.priority || prev.priority,
+          effortEstimate: data.effortEstimate || '2-3 hours',
+        }));
+        toast.success('AI auto-analyzed priority & effort estimate! ✨', { id: 'auto-analyze' });
+      }
+    } catch (e) {
+      toast.error('AI auto-analysis completed with default estimates', { id: 'auto-analyze' });
+    } finally {
+      setIsAutoAnalyzing(false);
+    }
   };
 
   const handleGenerateAiTasks = async () => {
@@ -929,8 +979,8 @@ export default function TeamWorkspacePage() {
                                 </div>
                               )}
 
-                              {/* AI Subtasks Breakdown Trigger */}
-                              <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: 2 }}>
+                              {/* AI Actions Row */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); handleGenerateSubtasks(t._id, t.title, t.description, t.subtasks); }}
@@ -942,6 +992,19 @@ export default function TeamWorkspacePage() {
                                 >
                                   <FiSparkles size={11} />
                                   <span>AI Subtasks</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleResolveBlocker(t); }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6,
+                                    background: 'rgba(251, 191, 36, 0.15)', border: '1px solid rgba(251, 191, 36, 0.3)',
+                                    color: '#fbbf24', fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer'
+                                  }}
+                                >
+                                  <FiZap size={11} />
+                                  <span>AI Blocker Assist</span>
                                 </button>
                               </div>
 
@@ -1354,18 +1417,34 @@ export default function TeamWorkspacePage() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <input
-                type="text"
-                required
-                placeholder="Task title..."
-                value={taskForm.title}
-                onChange={e => setTaskForm({ ...taskForm, title: e.target.value })}
-                style={{
-                  width: '100%', padding: '9px 12px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
-                  color: '#fff', fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box'
-                }}
-              />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="text"
+                  required
+                  placeholder="Task title..."
+                  value={taskForm.title}
+                  onChange={e => setTaskForm({ ...taskForm, title: e.target.value })}
+                  style={{
+                    flex: 1, padding: '9px 12px', borderRadius: 8,
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)',
+                    color: '#fff', fontSize: '0.85rem', outline: 'none'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAutoAnalyzeTask}
+                  disabled={isAutoAnalyzing}
+                  title="AI Auto-Detect Priority & Effort Estimate"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '9px 12px', borderRadius: 8,
+                    background: 'rgba(167, 139, 250, 0.2)', border: '1px solid rgba(167, 139, 250, 0.4)',
+                    color: '#a78bfa', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+                  }}
+                >
+                  <FiSparkles size={13} />
+                  <span>{isAutoAnalyzing ? 'Analyzing...' : 'AI Auto-Fill'}</span>
+                </button>
+              </div>
               <textarea
                 placeholder="Description & details..."
                 rows={3}
@@ -1623,6 +1702,49 @@ export default function TeamWorkspacePage() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
                   <button onClick={() => setShowWorkloadModal(false)} style={{ padding: '8px 16px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>Close</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Blocker Resolution Modal */}
+      {blockerModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(5, 7, 12, 0.85)',
+          backdropFilter: 'blur(16px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div className="liquid-glass" style={{
+            width: '100%', maxWidth: 500, borderRadius: 20, padding: 24,
+            background: 'rgba(16, 20, 32, 0.96)', border: '1px solid rgba(251, 191, 36, 0.4)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <FiZap size={18} color="#fbbf24" />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  AI Blocker Resolution Assistant
+                </h3>
+              </div>
+              <button onClick={() => setBlockerModalOpen(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><FiX size={16} /></button>
+            </div>
+
+            <div style={{ marginBottom: 14, padding: 12, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ fontSize: '0.72rem', color: '#fbbf24', fontWeight: 700, textTransform: 'uppercase' }}>Target Task</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff', marginTop: 2 }}>{blockerTask?.title}</div>
+            </div>
+
+            {blockerLoading ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                🤖 Gemini AI is generating resolution steps for this task...
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ padding: 14, borderRadius: 12, background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.25)', color: '#fff', fontSize: '0.84rem', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                  {blockerSteps}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={() => setBlockerModalOpen(false)} style={{ padding: '8px 16px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, cursor: 'pointer', fontSize: '0.8rem' }}>Got it!</button>
                 </div>
               </div>
             )}
