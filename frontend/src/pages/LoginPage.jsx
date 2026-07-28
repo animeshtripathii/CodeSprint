@@ -50,7 +50,10 @@ export default function LoginPage() {
   const submit = async (e) => {
     e.preventDefault(); setError('');
     try { await login(form.email, form.password); toast.success('Welcome back!'); navigate(from, { replace: true }); }
-    catch (err) { setError(err.response?.data?.message || 'Invalid credentials'); }
+    catch (err) { 
+      const msg = err.response?.data?.message || (!err.response ? (err.message || 'Network error connection failed') : 'Invalid credentials');
+      setError(msg); 
+    }
   };
 
   const handleSocialLogin = async (provider) => {

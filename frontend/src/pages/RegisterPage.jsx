@@ -87,7 +87,8 @@ export default function RegisterPage() {
       toast.success('Account created! Welcome to CodeSprint 🎉');
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      const msg = err.response?.data?.message || (!err.response ? (err.message || 'Network connection failed') : 'Registration failed');
+      setError(msg);
     }
   };
 
