@@ -112,7 +112,14 @@ const getSubmissionById = async (id) => {
     };
   }
   const sub = await Submission.findById(id)
-    .populate('team', 'name leader members')
+    .populate({
+      path: 'team',
+      select: 'name leader members',
+      populate: [
+        { path: 'leader', select: 'name email avatar' },
+        { path: 'members', select: 'name email avatar' },
+      ],
+    })
     .populate('hackathon', 'title judgingCriteria')
     .populate('submittedBy', 'name email');
   if (!sub) throw new ApiError(404, 'Submission not found');
@@ -127,7 +134,16 @@ const listSubmissionsByHackathon = async (hackathonId, queryParams = {}) => {
 
   const query = { hackathon: hackathonId };
   const [submissions, total] = await Promise.all([
-    Submission.find(query).populate('team', 'name leader').sort({ createdAt: -1 }),
+    Submission.find(query)
+      .populate({
+        path: 'team',
+        select: 'name leader members',
+        populate: [
+          { path: 'leader', select: 'name email avatar' },
+          { path: 'members', select: 'name email avatar' },
+        ],
+      })
+      .sort({ createdAt: -1 }),
     Submission.countDocuments(query),
   ]);
 

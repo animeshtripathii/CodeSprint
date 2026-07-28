@@ -335,6 +335,52 @@ export default function ReviewFormPage() {
                   )}
                 </div>
 
+                {/* Team Members — always visible for judges */}
+                {submission?.team && (
+                  <div style={{ paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                      Team Members ({(submission.team.members?.length || 1)})
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {/* Show populated members array if available */}
+                      {Array.isArray(submission.team.members) && submission.team.members.length > 0
+                        ? submission.team.members.map((member, idx) => {
+                            const name = typeof member === 'object' ? member.name : 'Member';
+                            const email = typeof member === 'object' ? member.email : '';
+                            const avatar = typeof member === 'object' ? member.avatar : '';
+                            const isLeader = submission.team.leader &&
+                              (typeof submission.team.leader === 'object'
+                                ? submission.team.leader._id === member._id
+                                : submission.team.leader === member._id || submission.team.leader === member);
+                            return (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <div style={{ width: 32, height: 32, borderRadius: '50%', background: avatar ? 'transparent' : 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
+                                  {avatar
+                                    ? <img src={avatar} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : name?.[0]?.toUpperCase() || '?'}
+                                </div>
+                                <div style={{ minWidth: 0 }}>
+                                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {name}
+                                    {isLeader && (
+                                      <span style={{ fontSize: '0.6rem', background: 'rgba(251,191,36,0.18)', color: '#fbbf24', padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>Leader</span>
+                                    )}
+                                  </div>
+                                  {email && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email}</div>}
+                                </div>
+                              </div>
+                            );
+                          })
+                        : (
+                          <div style={{ padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                            {submission.team.name || 'Team'}
+                          </div>
+                        )
+                      }
+                    </div>
+                  </div>
+                )}
+
               </div>
 
             </div>
