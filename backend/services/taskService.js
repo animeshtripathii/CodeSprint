@@ -9,21 +9,25 @@ const createTask = async (creatorId, data) => {
   if (!team) throw new ApiError(404, 'Team not found');
   if (!isMember(team, creatorId)) throw new ApiError(403, 'Not a team member');
 
+  const assignedToVal = (data.assignedTo && typeof data.assignedTo === 'string' && data.assignedTo.trim() !== '') 
+    ? data.assignedTo.trim() 
+    : null;
+
   const task = await Task.create({
     team: data.teamId,
     hackathon: data.hackathonId || team.hackathon,
     title: data.title,
     description: data.description || '',
-    assignedTo: data.assignedTo || null,
+    assignedTo: assignedToVal,
     createdBy: creatorId,
     priority: data.priority || 'medium',
     dueDate: data.dueDate || null,
-    status: 'todo',
+    status: data.status || 'todo',
     aiGenerated: data.aiGenerated || false,
     effortEstimate: data.effortEstimate || '',
   });
 
-  return task.populate('assignedTo createdBy', 'name avatar');
+  return task.populate('assignedTo createdBy', 'name avatar email');
 };
 
 const bulkCreateTasks = async (creatorId, teamId, tasks) => {
@@ -60,35 +64,36 @@ const updateTaskStatus = async (taskId, userId, status) => {
   const task = await Task.findById(taskId).populate('team');
   if (!task) throw new ApiError(404, 'Task not found');
   const team = task.team;
-  const isAssignee = task.assignedTo?.toString() === userId.toString();
-  const isLeader = team.leader.toString() === userId.toString();
-  const isCreator = task.createdBy.toString() === userId.toString();
-  if (!isAssignee && !isLeader && !isCreator) throw new ApiError(403, 'Not authorized to update task status');
+  if (!isMember(team, userId)) throw new ApiError(403, 'Not authorized — must be a team member');
   task.status = status;
   await task.save();
-  return task;
+  return task.populate('assignedTo createdBy', 'name avatar email');
 };
 
 const assignTask = async (taskId, requesterId, assigneeId) => {
   const task = await Task.findById(taskId).populate('team');
   if (!task) throw new ApiError(404, 'Task not found');
   const team = task.team;
-  const isLeader = team.leader.toString() === requesterId.toString();
-  const isCreator = task.createdBy.toString() === requesterId.toString();
-  if (!isLeader && !isCreator) throw new ApiError(403, 'Only leader or creator can assign tasks');
-  if (assigneeId && !isMember(team, assigneeId)) throw new ApiError(400, 'Assignee must be a team member');
-  task.assignedTo = assigneeId || null;
+  if (!isMember(team, requesterId)) throw new ApiError(403, 'Not authorized — must be a team member');
+  
+  const assignedToVal = (assigneeId && typeof assigneeId === 'string' && assigneeId.trim() !== '') 
+    ? assigneeId.trim() 
+    : null;
+
+  if (assignedToVal && !isMember(team, assignedToVal)) {
+    throw new ApiError(400, 'Assignee must be a member of this team');
+  }
+
+  task.assignedTo = assignedToVal;
   await task.save();
-  return task.populate('assignedTo', 'name avatar email');
+  return task.populate('assignedTo createdBy', 'name avatar email');
 };
 
 const deleteTask = async (taskId, userId) => {
   const task = await Task.findById(taskId).populate('team');
   if (!task) throw new ApiError(404, 'Task not found');
   const team = task.team;
-  const isLeader = team.leader.toString() === userId.toString();
-  const isCreator = task.createdBy.toString() === userId.toString();
-  if (!isLeader && !isCreator) throw new ApiError(403, 'Only leader or task creator can delete tasks');
+  if (!isMember(team, userId)) throw new ApiError(403, 'Not authorized — must be a team member');
   await task.deleteOne();
   return task;
 };

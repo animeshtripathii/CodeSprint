@@ -192,6 +192,19 @@ export default function TeamWorkspacePage() {
     }
   };
 
+  const handleAssignTask = async (taskId, assigneeId) => {
+    try {
+      const res = await api.patch(`/tasks/${taskId}/assign`, { assigneeId });
+      toast.success('Task assignee updated! 👤');
+      const updated = res.data?.data;
+      if (updated) {
+        setTasks(prev => prev.map(t => (t._id === taskId ? { ...t, ...updated } : t)));
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to assign task');
+    }
+  };
+
   const handleDeleteTask = async (taskId) => {
     try {
       await api.delete(`/tasks/${taskId}`);
@@ -698,20 +711,48 @@ export default function TeamWorkspacePage() {
                                 </p>
                               )}
 
-                              {/* Task Footer: Assignee & Due Date */}
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 700, color: '#fff' }}>
-                                    {(t.assignedTo?.name || t.assignedTo || 'U')[0]?.toUpperCase()}
-                                  </div>
-                                  <span>{t.assignedTo?.name || t.assignedTo || 'Unassigned'}</span>
-                                </div>
-                                {t.dueDate && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <FiCalendar size={11} /> {new Date(t.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                                  </div>
-                                )}
-                              </div>
+                               {/* Task Footer: Assignee & Due Date */}
+                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                   <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
+                                     {typeof t.assignedTo === 'object' && t.assignedTo?.avatar ? (
+                                       <img src={t.assignedTo.avatar} alt={t.assignedTo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                     ) : (
+                                       (typeof t.assignedTo === 'object' ? t.assignedTo?.name : t.assignedTo || 'U')[0]?.toUpperCase()
+                                     )}
+                                   </div>
+                                   <select
+                                     value={typeof t.assignedTo === 'object' ? t.assignedTo?._id || '' : t.assignedTo || ''}
+                                     onChange={e => handleAssignTask(t._id, e.target.value)}
+                                     style={{
+                                       background: 'transparent',
+                                       border: 'none',
+                                       color: 'rgba(255,255,255,0.85)',
+                                       fontSize: '0.72rem',
+                                       fontWeight: 600,
+                                       cursor: 'pointer',
+                                       outline: 'none',
+                                       maxWidth: 130,
+                                     }}
+                                   >
+                                     <option value="" style={{ background: '#0a0c13', color: '#fff' }}>Unassigned</option>
+                                     {Array.isArray(team?.members) && team.members.map((m, idx) => {
+                                       const mId = typeof m === 'object' ? m._id : m;
+                                       const mName = typeof m === 'object' ? m.name : 'Teammate';
+                                       return (
+                                         <option key={mId || idx} value={mId} style={{ background: '#0a0c13', color: '#fff' }}>
+                                           {mName}
+                                         </option>
+                                       );
+                                     })}
+                                   </select>
+                                 </div>
+                                 {t.dueDate && (
+                                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                     <FiCalendar size={11} /> {new Date(t.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                   </div>
+                                 )}
+                               </div>
 
                               {/* Quick Move Status Bar */}
                               <div style={{ display: 'flex', gap: 4, marginTop: 4, paddingTop: 6, borderTop: '1px dashed rgba(255,255,255,0.08)' }}>
@@ -1142,16 +1183,25 @@ export default function TeamWorkspacePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
                   <label style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 4 }}>Assigned Teammate</label>
-                  <input
-                    type="text"
-                    placeholder="Teammate name..."
+                  <select
                     value={taskForm.assignedTo}
                     onChange={e => setTaskForm({ ...taskForm, assignedTo: e.target.value })}
                     style={{
                       width: '100%', padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.06)',
                       border: '1px solid rgba(255,255,255,0.14)', color: '#fff', fontSize: '0.78rem', boxSizing: 'border-box'
                     }}
-                  />
+                  >
+                    <option value="" style={{ background: '#0a0c13', color: '#fff' }}>Unassigned</option>
+                    {Array.isArray(team?.members) && team.members.map((m, idx) => {
+                      const mId = typeof m === 'object' ? m._id : m;
+                      const mName = typeof m === 'object' ? m.name : 'Teammate';
+                      return (
+                        <option key={mId || idx} value={mId} style={{ background: '#0a0c13', color: '#fff' }}>
+                          {mName}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </div>
 
                 <div>
