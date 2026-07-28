@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Registration = require('../models/Registration');
+const Team = require('../models/Team');
 const ApiError = require('../utils/ApiError');
 const crypto = require('crypto');
 
@@ -167,6 +169,26 @@ const resetPasswordWithToken = async (token, newPassword) => {
   return user;
 };
 
+/**
+ * Delete account for self (non-admin roles only)
+ */
+const deleteAccount = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, 'User not found');
+  if (user.role === 'admin') {
+    throw new ApiError(403, 'Admin accounts cannot be self-deleted');
+  }
+
+  // Clean up user references across teams & registrations
+  await Promise.all([
+    Registration.deleteMany({ user: userId }),
+    Team.updateMany({ members: userId }, { $pull: { members: userId } }),
+    User.findByIdAndDelete(userId),
+  ]);
+
+  return { message: 'Account deleted successfully' };
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -175,4 +197,5 @@ module.exports = {
   syncClerkUser,
   requestPasswordReset,
   resetPasswordWithToken,
+  deleteAccount,
 };

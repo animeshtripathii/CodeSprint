@@ -1,19 +1,27 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { DottedGlowBackground } from '../components/ui/dotted-glow-background';
-import { User, Mail, Shield, Award, CheckCircle2, Globe, Sparkles, Building, Code2 } from 'lucide-react';
+import { User, Mail, Shield, Award, CheckCircle2, Globe, Sparkles, Building, Code2, AlertTriangle, Trash2 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+  const { user: clerkUser } = useUser();
+  const navigate = useNavigate();
+
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [organization, setOrganization] = useState(user?.organization || '');
   const [skills, setSkills] = useState(user?.skills?.join(', ') || '');
   const [githubUsername, setGithubUsername] = useState(user?.githubUsername || '');
   const [updating, setUpdating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmDeleteText, setConfirmDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const role = user?.role || 'participant';
 
@@ -22,7 +30,7 @@ export default function ProfilePage() {
     setUpdating(true);
     try {
       const skillsArray = skills.split(',').map(s => s.trim()).filter(Boolean);
-      await api.patch('/users/profile', {
+      await api.put('/auth/me', {
         name,
         bio,
         organization,
@@ -32,9 +40,34 @@ export default function ProfilePage() {
       await refreshUser();
       toast.success('Profile updated successfully! 🎉');
     } catch (err) {
-      toast.error('Failed to update profile');
+      toast.error(err.response?.data?.message || 'Failed to update profile');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (confirmDeleteText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      // 1. Delete user from MongoDB database
+      await api.delete('/auth/me');
+
+      // 2. Delete user from Clerk (Google / GitHub provider) if applicable
+      if (clerkUser) {
+        await clerkUser.delete().catch(err => console.warn('Clerk user delete warning:', err));
+      }
+
+      // 3. Clear local storage and auth context
+      await logout();
+
+      toast.success('Your account has been permanently deleted.');
+      navigate('/login');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -235,6 +268,53 @@ export default function ProfilePage() {
                   </button>
                 </div>
               </form>
+
+              {/* Danger Zone — Self Account Deletion (Available to all roles except Admin) */}
+              {role !== 'admin' && (
+                <div style={{
+                  marginTop: 32,
+                  padding: '24px',
+                  borderRadius: 20,
+                  background: 'rgba(239, 68, 68, 0.04)',
+                  border: '1px solid rgba(239, 68, 68, 0.22)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                    <div style={{ padding: 8, borderRadius: 10, background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
+                      <AlertTriangle size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f87171' }}>Danger Zone</div>
+                      <div style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)' }}>Permanently remove your account & all personal data</div>
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.55)', margin: '12px 0 16px', lineHeight: 1.55 }}>
+                    Once deleted, your profile, team memberships, and registrations will be erased. If you logged in using GitHub or Google, your authentication credentials will be deleted so you will not be auto-logged back in.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 20px',
+                      borderRadius: 10,
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      border: '1px solid rgba(239, 68, 68, 0.35)',
+                      color: '#f87171',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    <Trash2 size={15} /> Delete Account
+                  </button>
+                </div>
+              )}
+
             </div>
 
           </div>
@@ -242,6 +322,77 @@ export default function ProfilePage() {
         </div>
 
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 440, background: '#090a0f', border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 22, padding: 28, color: '#fff', boxShadow: '0 20px 50px rgba(0,0,0,0.9)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ padding: 8, borderRadius: 10, background: 'rgba(239,68,68,0.2)', color: '#f87171', display: 'flex' }}>
+                <AlertTriangle size={20} />
+              </div>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f87171', margin: 0 }}>
+                Delete Account Permanently?
+              </h3>
+            </div>
+            
+            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55, marginBottom: 16 }}>
+              This action <strong>cannot be undone</strong>. All your team entries, project associations, and profile data will be permanently wiped.
+            </p>
+            
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 8 }}>
+                Type <strong style={{ color: '#fff' }}>DELETE</strong> to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmDeleteText}
+                onChange={(e) => setConfirmDeleteText(e.target.value)}
+                placeholder="DELETE"
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 10,
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.18)',
+                  color: '#fff', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => { setShowDeleteModal(false); setConfirmDeleteText(''); }}
+                disabled={deleting}
+                style={{
+                  padding: '10px 18px', borderRadius: 10, background: 'rgba(255,255,255,0.08)',
+                  border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting || confirmDeleteText !== 'DELETE'}
+                style={{
+                  padding: '10px 20px', borderRadius: 10,
+                  background: confirmDeleteText === 'DELETE' ? '#ef4444' : 'rgba(239,68,68,0.3)',
+                  border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.85rem',
+                  cursor: confirmDeleteText === 'DELETE' && !deleting ? 'pointer' : 'not-allowed'
+                }}
+              >
+                {deleting ? 'Deleting...' : 'Permanently Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

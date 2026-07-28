@@ -143,4 +143,16 @@ const resetPassword = asyncHandler(async (req, res) => {
   );
 });
 
-module.exports = { register, login, logout, getMe, updateMe, clerkSync, forgotPassword, resetPassword };
+/**
+ * DELETE /api/auth/me (protected - self delete account for non-admins)
+ */
+const deleteAccount = asyncHandler(async (req, res) => {
+  await authService.deleteAccount(req.user._id);
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+  return res.status(200).json(new ApiResponse(200, {}, 'Account deleted successfully'));
+});
+
+module.exports = { register, login, logout, getMe, updateMe, clerkSync, forgotPassword, resetPassword, deleteAccount };
