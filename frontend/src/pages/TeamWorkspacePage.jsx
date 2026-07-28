@@ -45,6 +45,8 @@ export default function TeamWorkspacePage() {
   // Search & Filter state for Kanban
   const [searchQuery, setSearchQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null);
 
   // Modals & inputs state
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -633,12 +635,31 @@ export default function TeamWorkspacePage() {
               }}>
                 {KANBAN_COLUMNS.map(col => {
                   const colTasks = filteredTasks.filter(t => (t.status || 'todo') === col.id);
+                  const isOver = dragOverCol === col.id;
                   return (
                     <div
                       key={col.id}
+                      onDragOver={e => {
+                        e.preventDefault();
+                        if (dragOverCol !== col.id) setDragOverCol(col.id);
+                      }}
+                      onDragLeave={() => setDragOverCol(null)}
+                      onDrop={e => {
+                        e.preventDefault();
+                        setDragOverCol(null);
+                        const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
+                        if (taskId) {
+                          handleUpdateTaskStatus(taskId, col.id);
+                          setDraggedTaskId(null);
+                        }
+                      }}
                       style={{
-                        background: 'rgba(12, 14, 22, 0.75)', borderRadius: 18, padding: 14,
-                        border: `1px solid ${col.border}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 480
+                        background: isOver ? 'rgba(27, 104, 255, 0.12)' : 'rgba(12, 14, 22, 0.75)',
+                        borderRadius: 18, padding: 14,
+                        border: `1px solid ${isOver ? col.color : col.border}`,
+                        display: 'flex', flexDirection: 'column', gap: 12, minHeight: 480,
+                        transition: 'all 0.2s ease',
+                        boxShadow: isOver ? `0 0 20px ${col.color}33` : 'none',
                       }}
                     >
                       {/* Column Header */}
@@ -672,11 +693,25 @@ export default function TeamWorkspacePage() {
                           colTasks.map(t => (
                             <div
                               key={t._id}
+                              draggable={true}
+                              onDragStart={e => {
+                                setDraggedTaskId(t._id);
+                                e.dataTransfer.setData('text/plain', t._id);
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTaskId(null);
+                                setDragOverCol(null);
+                              }}
                               className="liquid-glass"
                               style={{
                                 borderRadius: 14, padding: 14, background: 'rgba(20, 24, 38, 0.95)',
                                 border: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: 'column', gap: 8,
-                                position: 'relative'
+                                position: 'relative',
+                                cursor: 'grab',
+                                opacity: draggedTaskId === t._id ? 0.4 : 1,
+                                transform: draggedTaskId === t._id ? 'scale(0.98)' : 'none',
+                                transition: 'all 0.15s ease',
                               }}
                             >
                               {/* Task Header: Priority & Delete */}
