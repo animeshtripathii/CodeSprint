@@ -96,6 +96,13 @@ export default function SubmissionPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic client-side guard before hitting the server
+    if (!form.projectName.trim() || !form.problemStatement.trim() || !form.solution.trim()) {
+      toast.error('Please fill in Project Name, Problem Statement, and Solution before submitting.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.post(`/submissions`, {
@@ -106,8 +113,8 @@ export default function SubmissionPage() {
       toast.success('Project Entry Submitted Successfully! 🎉');
       navigate('/dashboard');
     } catch (err) {
-      toast.success('Project Entry Submitted Successfully! 🎉');
-      navigate('/dashboard');
+      const msg = err?.response?.data?.message || 'Submission failed. Please check the form and try again.';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }

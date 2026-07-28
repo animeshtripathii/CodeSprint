@@ -139,8 +139,8 @@ export default function ReviewFormPage() {
       toast.success('Review submitted successfully! ⚖️');
       navigate(`/dashboard`);
     } catch (err) {
-      toast.success('Review submitted successfully! ⚖️');
-      navigate(`/dashboard`);
+      const msg = err?.response?.data?.message || 'Failed to submit review. Please try again.';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
