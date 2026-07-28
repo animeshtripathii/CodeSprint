@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSignUp } from '@clerk/clerk-react';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Zap, ChevronDown } from 'lucide-react';
@@ -50,10 +50,16 @@ const labelStyle = {
   letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 4, fontFamily: "'Inter', sans-serif",
 };
 
+
 export default function RegisterPage() {
   const { register, loading } = useAuth();
   const { signUp, isLoaded: clerkSignUpLoaded } = useSignUp();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const from = redirectParam || (location.state?.from ? `${location.state.from.pathname}${location.state.from.search || ''}` : '/dashboard');
+
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '', role: 'participant' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -67,10 +73,11 @@ export default function RegisterPage() {
       return;
     }
     try {
+      localStorage.setItem('auth_redirect', from);
       await signUp.authenticateWithRedirect({
         strategy: provider === 'google' ? 'oauth_google' : 'oauth_github',
         redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/dashboard',
+        redirectUrlComplete: from,
       });
     } catch (err) {
       toast.error(err.message || `Failed to sign up with ${provider}`);
@@ -85,7 +92,7 @@ export default function RegisterPage() {
     try {
       await register({ name: form.name.trim(), email: form.email.trim(), password: form.password, role: form.role });
       toast.success('Account created! Welcome to CodeSprint 🎉');
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (err) {
       const msg = err.response?.data?.message || (!err.response ? (err.message || 'Network connection failed') : 'Registration failed');
       setError(msg);
@@ -274,7 +281,7 @@ export default function RegisterPage() {
 
             <p style={{ textAlign: 'center', fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontFamily: "'Inter', sans-serif" }}>
               Already have an account?{' '}
-              <Link to="/login" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
+              <Link to={`/login?redirect=${encodeURIComponent(from)}`} style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#fff'}
                 onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.85)'}>
                 Sign in →

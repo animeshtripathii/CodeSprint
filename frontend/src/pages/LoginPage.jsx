@@ -41,7 +41,9 @@ export default function LoginPage() {
   const { signIn, isLoaded: clerkSignInLoaded } = useSignIn();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const searchParams = new URLSearchParams(location.search);
+  const redirectParam = searchParams.get('redirect');
+  const from = redirectParam || (location.state?.from ? `${location.state.from.pathname}${location.state.from.search || ''}` : '/dashboard');
   const [form, setForm] = useState({ email: location.state?.email || '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -62,6 +64,7 @@ export default function LoginPage() {
       return;
     }
     try {
+      localStorage.setItem('auth_redirect', from);
       await signIn.authenticateWithRedirect({
         strategy: provider === 'google' ? 'oauth_google' : 'oauth_github',
         redirectUrl: '/sso-callback',
@@ -210,7 +213,7 @@ export default function LoginPage() {
 
             <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'rgba(255,255,255,0.4)', margin: 0, fontFamily: "'Inter', sans-serif" }}>
               No account?{' '}
-              <Link to="/register" style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
+              <Link to={`/register?redirect=${encodeURIComponent(from)}`} style={{ color: 'rgba(255,255,255,0.85)', fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.target.style.color = '#fff'}
                 onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.85)'}>
                 Create one for free →

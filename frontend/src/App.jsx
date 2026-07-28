@@ -12,7 +12,7 @@ import HackathonsPage from './pages/HackathonsPage';
 import DashboardPage from './pages/DashboardPage';
 
 // Lazy pages (loaded on demand)
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 const HackathonDetailPage = lazy(() => import('./pages/HackathonDetailPage'));
 const JoinTeamPage = lazy(() => import('./pages/JoinTeamPage'));
 const CreateHackathonPage = lazy(() => import('./pages/CreateHackathonPage'));
@@ -44,6 +44,22 @@ const PageLoader = () => (
   </div>
 );
 
+function SSOCallback() {
+  const [redirectUrl] = useState(() => localStorage.getItem('auth_redirect') || '/dashboard');
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('auth_redirect');
+    };
+  }, []);
+
+  return (
+    <AuthenticateWithRedirectCallback
+      signInForceRedirectUrl={redirectUrl}
+      signUpForceRedirectUrl={redirectUrl}
+    />
+  );
+}
+
 function AppRoutes() {
   const { user, initializing } = useAuth();
 
@@ -54,7 +70,7 @@ function AppRoutes() {
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback signInForceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard" />} />
+        <Route path="/sso-callback" element={<SSOCallback />} />
 
         {/* Auth — redirect if already logged in */}
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />

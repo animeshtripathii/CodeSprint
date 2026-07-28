@@ -260,36 +260,66 @@ export default function TeamWorkspacePage() {
     }
   };
 
+  // Auto-scroll chat to bottom on new message
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, activeTab]);
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const text = chatInput;
+    const text = chatInput.trim();
     setChatInput('');
 
-    const newMsg = {
-      _id: 'm-' + Date.now(),
-      sender: { name: user?.name || 'Animesh' },
-      text,
-      createdAt: new Date()
-    };
-
-    setMessages(prev => [...prev, newMsg]);
+    try {
+      const res = await api.post(`/messages/${teamId}`, { text });
+      const savedMsg = res.data?.data;
+      if (savedMsg) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === savedMsg._id)) return prev;
+          return [...prev, savedMsg];
+        });
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      // Local optimistic fallback
+      const fallbackMsg = {
+        _id: 'm-' + Date.now(),
+        sender: { name: user?.name || 'Developer', avatar: user?.avatar || '' },
+        text,
+        createdAt: new Date()
+      };
+      setMessages(prev => [...prev, fallbackMsg]);
+    }
 
     if (text.toLowerCase().includes('@ai')) {
-      setTimeout(() => {
-        const todoCount = tasks.filter(t => t.status === 'todo').length;
-        setMessages(prev => [
-          ...prev,
-          {
-            _id: 'm-ai-' + Date.now(),
-            sender: { name: 'AI Assistant' },
-            isAi: true,
-            text: `Analyzing team sprint: You currently have ${todoCount} pending tasks in To Do column. Prioritize urgent API endpoints first!`,
-            createdAt: new Date()
-          }
-        ]);
-      }, 600);
+      setIsAiLoading(true);
+      try {
+        const aiRes = await api.post(`/ai/chat/${teamId}`, { message: text });
+        const aiMsg = aiRes.data?.data;
+        if (aiMsg) {
+          setMessages(prev => [...prev, aiMsg]);
+        }
+      } catch (err) {
+        setTimeout(() => {
+          const todoCount = tasks.filter(t => t.status === 'todo').length;
+          setMessages(prev => [
+            ...prev,
+            {
+              _id: 'm-ai-' + Date.now(),
+              sender: { name: 'AI Assistant' },
+              isAi: true,
+              text: `Analyzing team sprint: You currently have ${todoCount} pending tasks in To Do column. Prioritize urgent items first!`,
+              createdAt: new Date()
+            }
+          ]);
+        }, 600);
+      } finally {
+        setIsAiLoading(false);
+      }
     }
   };
 
@@ -929,6 +959,7 @@ export default function TeamWorkspacePage() {
                     </div>
                   </div>
                 ))}
+                <div ref={chatEndRef} />
               </div>
 
               <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: 8, marginTop: 14, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.08)' }}>

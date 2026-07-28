@@ -79,7 +79,8 @@ export default function JoinTeamPage() {
   const handleJoinTeam = async () => {
     if (!user) {
       toast.error('Please log in first to join a team');
-      navigate(`/login?redirect=/join-team?code=${inputCode}&teamId=${teamInfo?._id || teamIdParam}`);
+      const targetUrl = window.location.pathname + window.location.search;
+      navigate(`/login?redirect=${encodeURIComponent(targetUrl)}`);
       return;
     }
 
