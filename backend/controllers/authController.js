@@ -9,7 +9,7 @@ const ApiError = require('../utils/ApiError');
  */
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
-  const user = await authService.registerUser({ name, email, password, role });
+  const user = await authService.registerUser({ name, email, password, role});
   const token = generateToken(res, user._id, user.role);
 
   return res.status(201).json(
