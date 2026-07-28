@@ -28,12 +28,24 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('hf_user', JSON.stringify(backendUser));
             setLocalUser(backendUser);
           })
-          .catch(() => {
+          .catch((err) => {
+            const status = err?.response?.status;
+            // 403 = account deleted/blocked, 401 = account no longer exists
+            // In either case, force a full sign-out — do NOT let the user reach the dashboard.
+            if (status === 403 || status === 401) {
+              clerk.signOut().catch(() => {});
+              localStorage.removeItem('hf_token');
+              localStorage.removeItem('hf_user');
+              setLocalUser(null);
+              return;
+            }
+            // Network error or 5xx — use a minimal fallback so the UI doesn't break,
+            // but do NOT invent a role; default to participant until next sync.
             const fallbackUser = {
               _id: clerkUser.id,
               name,
               email,
-              role: clerkUser.publicMetadata?.role || 'participant',
+              role: 'participant',
               avatar,
               isClerk: true,
             };

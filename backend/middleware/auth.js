@@ -25,10 +25,15 @@ const protect = asyncHandler(async (req, res, next) => {
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  const user = await User.findById(decoded.id).select('-password');
+  // Explicitly select isDeleted (it has select:false in the schema)
+  const user = await User.findById(decoded.id).select('-password +isDeleted');
 
   if (!user) {
     throw new ApiError(401, 'User no longer exists');
+  }
+
+  if (user.isDeleted) {
+    throw new ApiError(401, 'This account has been deleted');
   }
 
   if (user.isBlocked) {

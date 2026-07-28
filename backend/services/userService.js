@@ -41,8 +41,11 @@ const toggleBlockUser = async (userId, adminId) => {
 
 const deleteUser = async (userId, adminId) => {
   if (userId === adminId.toString()) throw new ApiError(400, 'Cannot delete yourself');
-  const user = await User.findByIdAndDelete(userId);
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findById(userId).select('+isDeleted');
+  if (!user || user.isDeleted) throw new ApiError(404, 'User not found');
+  // Soft-delete: preserve the record so OAuth (Clerk/Google/GitHub) cannot auto-recreate
+  // the account on next login attempt.
+  await User.findByIdAndUpdate(userId, { isDeleted: true, isBlocked: true });
   return user;
 };
 

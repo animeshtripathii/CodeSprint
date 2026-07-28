@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050507' }}>
@@ -16,11 +18,42 @@ const PageLoader = () => (
 );
 
 const ProtectedRoute = ({ children, roles }) => {
-  const { user, initializing } = useAuth();
+  const { user, initializing, logout } = useAuth();
   const location = useLocation();
+  // null = validating, true = valid, false = invalid (force logout)
+  const [sessionValid, setSessionValid] = useState(null);
 
-  if (initializing) return <PageLoader />;
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  useEffect(() => {
+    // Only validate when we think there IS a user (prevents unnecessary calls on public pages)
+    if (!initializing && user) {
+      const token = localStorage.getItem('hf_token');
+      if (!token) {
+        // No JWT at all (Clerk-only session) — skip backend check; AuthContext handles it
+        setSessionValid(true);
+        return;
+      }
+      // Validate the JWT against the backend — catches deleted/blocked users
+      api.get('/auth/me')
+        .then(() => setSessionValid(true))
+        .catch((err) => {
+          const status = err?.response?.status;
+          if (status === 401 || status === 403) {
+            // Account deleted or blocked — force logout
+            logout().catch(() => {});
+            setSessionValid(false);
+          } else {
+            // Network/server error — don't block access
+            setSessionValid(true);
+          }
+        });
+    } else if (!initializing && !user) {
+      setSessionValid(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initializing, user === null]);   // only re-run when user presence changes, not on every render
+
+  if (initializing || sessionValid === null) return <PageLoader />;
+  if (!user || sessionValid === false) return <Navigate to="/login" state={{ from: location }} replace />;
   if (roles && !roles.includes(user.role)) return <Navigate to="/dashboard" replace />;
   return children;
 };

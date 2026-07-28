@@ -50,6 +50,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Soft-delete flag — when true the account is deactivated and cannot be
+    // re-created by OAuth (Google/GitHub) clerk-sync auto-provisioning.
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      select: false,   // hidden from normal queries; middleware checks it explicitly
+    },
     // OAuth fields (for later)
     googleId: { type: String, default: null },
     githubId: { type: String, default: null },

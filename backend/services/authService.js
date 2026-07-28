@@ -105,13 +105,19 @@ const updateProfile = async (userId, updateData) => {
  */
 const syncClerkUser = async ({ clerkId, name, email, avatar }) => {
   const cleanEmail = (email || '').trim().toLowerCase();
-  let user = await User.findOne({ email: cleanEmail });
+  // Explicitly select isDeleted so we can guard against re-provisioning deleted accounts
+  let user = await User.findOne({ email: cleanEmail }).select('+isDeleted');
 
   if (user) {
+    // Block soft-deleted accounts — do NOT recreate them
+    if (user.isDeleted) {
+      throw new ApiError(403, 'This account has been permanently deleted. Contact support if this is a mistake.');
+    }
     if (avatar && !user.avatar) user.avatar = avatar;
     if (name && (user.name === 'Developer' || !user.name)) user.name = (name || '').trim();
     await user.save();
   } else {
+    // Brand new Google/GitHub user — create fresh account
     user = await User.create({
       name: (name || 'Developer').trim(),
       email: cleanEmail,
@@ -173,17 +179,19 @@ const resetPasswordWithToken = async (token, newPassword) => {
  * Delete account for self (non-admin roles only)
  */
 const deleteAccount = async (userId) => {
-  const user = await User.findById(userId);
+  const user = await User.findById(userId).select('+isDeleted');
   if (!user) throw new ApiError(404, 'User not found');
+  if (user.isDeleted) throw new ApiError(404, 'User not found');
   if (user.role === 'admin') {
     throw new ApiError(403, 'Admin accounts cannot be self-deleted');
   }
 
-  // Clean up user references across teams & registrations
+  // Soft-delete: mark as deleted so Clerk users cannot be auto-recreated on next login
+  // Also clean up team & registration references
   await Promise.all([
     Registration.deleteMany({ user: userId }),
     Team.updateMany({ members: userId }, { $pull: { members: userId } }),
-    User.findByIdAndDelete(userId),
+    User.findByIdAndUpdate(userId, { isDeleted: true, isBlocked: true }),
   ]);
 
   return { message: 'Account deleted successfully' };
