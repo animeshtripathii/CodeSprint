@@ -300,14 +300,14 @@ export default function HackathonDetailPage() {
       </div>
 
       {showTeamModal && (
-        <TeamRegistrationModal
-          hackathonId={id}
-          maxTeamSize={hackathon?.maxTeamSize || 4}
+      <TeamRegistrationModal
+          hackathon={hackathon}
+          isOpen={showTeamModal}
           onClose={() => setShowTeamModal(false)}
-          onSuccess={() => {
+          onSuccess={(teamData) => {
             setShowTeamModal(false);
             setRegisterStatus('approved');
-            toast.success('Team registered successfully!');
+            toast.success('Team registered successfully! 🎉');
           }}
         />
       )}
