@@ -17,8 +17,27 @@ const registerUser = async ({ name, email, password, role }) => {
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanName = (name || '').trim();
 
-  const existingUser = await User.findOne({ email: cleanEmail });
+  // Include isDeleted in the query so we can detect soft-deleted accounts
+  const existingUser = await User.findOne({ email: cleanEmail }).select('+isDeleted');
+
   if (existingUser) {
+    if (existingUser.isDeleted) {
+      // The email belongs to a previously deleted account — reactivate it with fresh credentials.
+      // This lets users re-register with the same email after account deletion.
+      existingUser.name = cleanName;
+      existingUser.password = password;          // will be hashed by pre-save hook
+      existingUser.role = role || 'participant';
+      existingUser.authProvider = 'local';
+      existingUser.isDeleted = false;
+      existingUser.isBlocked = false;
+      existingUser.bio = '';
+      existingUser.skills = [];
+      existingUser.avatar = '';
+      existingUser.resetPasswordToken = undefined;
+      existingUser.resetPasswordExpire = undefined;
+      await existingUser.save();
+      return existingUser;
+    }
     throw new ApiError(409, 'A user with this email already exists');
   }
 
@@ -105,16 +124,22 @@ const updateProfile = async (userId, updateData) => {
  */
 const syncClerkUser = async ({ clerkId, name, email, avatar }) => {
   const cleanEmail = (email || '').trim().toLowerCase();
-  // Explicitly select isDeleted so we can guard against re-provisioning deleted accounts
+  // Explicitly select isDeleted so we can handle previously deleted accounts
   let user = await User.findOne({ email: cleanEmail }).select('+isDeleted');
 
   if (user) {
-    // Block soft-deleted accounts — do NOT recreate them
     if (user.isDeleted) {
-      throw new ApiError(403, 'This account has been permanently deleted. Contact support if this is a mistake.');
+      // Previously deleted account — reactivate it for the OAuth user.
+      // This mirrors the same behaviour as email/password re-registration.
+      user.isDeleted = false;
+      user.isBlocked = false;
+      user.authProvider = 'google';
+      user.avatar = avatar || user.avatar || '';
+      user.name = (name || user.name || 'Developer').trim();
+    } else {
+      if (avatar && !user.avatar) user.avatar = avatar;
+      if (name && (user.name === 'Developer' || !user.name)) user.name = (name || '').trim();
     }
-    if (avatar && !user.avatar) user.avatar = avatar;
-    if (name && (user.name === 'Developer' || !user.name)) user.name = (name || '').trim();
     await user.save();
   } else {
     // Brand new Google/GitHub user — create fresh account
