@@ -12,14 +12,17 @@ const registerUser = async ({ name, email, password, role }) => {
     throw new ApiError(400, `Cannot self-register as '${role}'`);
   }
 
-  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (name || '').trim();
+
+  const existingUser = await User.findOne({ email: cleanEmail });
   if (existingUser) {
     throw new ApiError(409, 'A user with this email already exists');
   }
 
   const user = await User.create({
-    name,
-    email: email.toLowerCase(),
+    name: cleanName,
+    email: cleanEmail,
     password,
     role: role || 'participant',
     authProvider: 'local',
@@ -32,14 +35,20 @@ const registerUser = async ({ name, email, password, role }) => {
  * Login an existing user
  */
 const loginUser = async ({ email, password }) => {
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const user = await User.findOne({ email: cleanEmail }).select('+password');
 
   if (!user) {
     throw new ApiError(401, 'Invalid email or password');
   }
 
   if (user.authProvider !== 'local') {
-    throw new ApiError(400, `Please log in using ${user.authProvider}`);
+    const providerName = user.authProvider === 'google' ? 'Google' : user.authProvider === 'github' ? 'GitHub' : user.authProvider;
+    throw new ApiError(400, `This account was registered using ${providerName}. Please sign in using ${providerName}.`);
+  }
+
+  if (!user.password) {
+    throw new ApiError(401, 'Invalid email or password');
   }
 
   const isMatch = await user.matchPassword(password);
@@ -93,16 +102,17 @@ const updateProfile = async (userId, updateData) => {
  * Sync or create a user via Clerk (Google/GitHub)
  */
 const syncClerkUser = async ({ clerkId, name, email, avatar }) => {
-  let user = await User.findOne({ email: email.toLowerCase() });
+  const cleanEmail = (email || '').trim().toLowerCase();
+  let user = await User.findOne({ email: cleanEmail });
 
   if (user) {
     if (avatar && !user.avatar) user.avatar = avatar;
-    if (name && (user.name === 'Developer' || !user.name)) user.name = name;
+    if (name && (user.name === 'Developer' || !user.name)) user.name = (name || '').trim();
     await user.save();
   } else {
     user = await User.create({
-      name: name || 'Developer',
-      email: email.toLowerCase(),
+      name: (name || 'Developer').trim(),
+      email: cleanEmail,
       role: 'participant',
       avatar: avatar || '',
       authProvider: 'google',
@@ -120,7 +130,8 @@ const syncClerkUser = async ({ clerkId, name, email, avatar }) => {
  * Request password reset token
  */
 const requestPasswordReset = async (email) => {
-  const user = await User.findOne({ email: email.toLowerCase() });
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const user = await User.findOne({ email: cleanEmail });
   if (!user) {
     throw new ApiError(404, 'User with this email does not exist');
   }

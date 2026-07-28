@@ -49,7 +49,7 @@ export default function LoginPage() {
   const set = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   const submit = async (e) => {
     e.preventDefault(); setError('');
-    try { await login(form.email, form.password); toast.success('Welcome back!'); navigate(from, { replace: true }); }
+    try { await login(form.email.trim(), form.password); toast.success('Welcome back!'); navigate(from, { replace: true }); }
     catch (err) { 
       const msg = err.response?.data?.message || (!err.response ? (err.message || 'Network error connection failed') : 'Invalid credentials');
       setError(msg); 

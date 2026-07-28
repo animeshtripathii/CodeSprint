@@ -83,7 +83,7 @@ export default function RegisterPage() {
     if (form.password !== form.confirmPassword) return setError('Passwords do not match');
     if (form.password.length < 6) return setError('Password must be at least 6 characters');
     try {
-      await register({ name: form.name, email: form.email, password: form.password, role: form.role });
+      await register({ name: form.name.trim(), email: form.email.trim(), password: form.password, role: form.role });
       toast.success('Account created! Welcome to CodeSprint 🎉');
       navigate('/dashboard');
     } catch (err) {
