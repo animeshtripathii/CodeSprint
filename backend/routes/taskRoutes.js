@@ -7,7 +7,15 @@ const ApiResponse = require('../utils/ApiResponse');
 
 const emitTaskEvent = (req, teamId, event, data) => {
   const io = req.app.get('io');
-  if (io) io.to(teamId.toString()).emit(event, data);
+  if (io && teamId) {
+    let roomId = teamId;
+    if (typeof teamId === 'object') {
+      roomId = teamId._id ? teamId._id.toString() : teamId.toString();
+    } else {
+      roomId = String(teamId);
+    }
+    io.to(roomId).emit(event, data);
+  }
 };
 
 router.post('/', protect, asyncHandler(async (req, res) => {

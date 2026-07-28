@@ -97,16 +97,54 @@ export default function TeamWorkspacePage() {
       });
     };
 
+    const handleTaskCreated = (newTask) => {
+      if (!newTask) return;
+      setTasks(prev => {
+        const idMatches = (t) => (t._id && (t._id === newTask._id || t._id === newTask.id)) || (t.id && (t.id === newTask._id || t.id === newTask.id));
+        if (prev.some(idMatches)) return prev;
+        return [newTask, ...prev];
+      });
+    };
+
     const handleTaskUpdated = (updatedTask) => {
-      setTasks(prev => prev.map(t => (t._id === updatedTask._id || t._id === updatedTask.id) ? { ...t, ...updatedTask } : t));
+      if (!updatedTask) return;
+      setTasks(prev => {
+        const idMatches = (t) => (t._id && (t._id === updatedTask._id || t._id === updatedTask.id)) || (t.id && (t.id === updatedTask._id || t.id === updatedTask.id));
+        if (prev.some(idMatches)) {
+          return prev.map(t => idMatches(t) ? { ...t, ...updatedTask } : t);
+        }
+        return [updatedTask, ...prev];
+      });
+    };
+
+    const handleTaskDeleted = (data) => {
+      const taskId = typeof data === 'object' ? data?.taskId : data;
+      if (!taskId) return;
+      setTasks(prev => prev.filter(t => t._id !== taskId && t.id !== taskId));
+    };
+
+    const handleTasksBulkCreated = (newTasks) => {
+      if (Array.isArray(newTasks)) {
+        setTasks(prev => {
+          const existingIds = new Set(prev.map(t => t._id || t.id));
+          const filtered = newTasks.filter(t => !existingIds.has(t._id || t.id));
+          return [...filtered, ...prev];
+        });
+      }
     };
 
     socket.on('message:new', handleNewMessage);
+    socket.on('task:created', handleTaskCreated);
     socket.on('task:updated', handleTaskUpdated);
+    socket.on('task:deleted', handleTaskDeleted);
+    socket.on('tasks:bulk-created', handleTasksBulkCreated);
 
     return () => {
       socket.off('message:new', handleNewMessage);
+      socket.off('task:created', handleTaskCreated);
       socket.off('task:updated', handleTaskUpdated);
+      socket.off('task:deleted', handleTaskDeleted);
+      socket.off('tasks:bulk-created', handleTasksBulkCreated);
       socket.emit('leaveTeam', teamId);
     };
   }, [teamId]);
