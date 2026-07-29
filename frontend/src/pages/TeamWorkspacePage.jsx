@@ -52,6 +52,83 @@ export default function TeamWorkspacePage() {
   const [messages, setMessages] = useState([]);
   const [repoTree, setRepoTree] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [treeLoading, setTreeLoading] = useState(false);
+  const [treeError, setTreeError] = useState(null);
+
+  const fetchRepoTree = async (forceRefresh = false) => {
+    const currentRepo = team?.githubRepo;
+    if (!currentRepo) return;
+
+    setTreeLoading(true);
+    setTreeError(null);
+    try {
+      const tId = team?._id || teamId;
+      const res = await api.get(`/teams/${tId}/repo-tree${forceRefresh ? '?refresh=1' : ''}`);
+      const tree = res.data?.data?.tree || res.data?.tree;
+      if (tree && Object.keys(tree).length > 0) {
+        setRepoTree(tree);
+      } else {
+        throw new Error('Tree empty');
+      }
+    } catch (err) {
+      console.warn('Backend repo-tree fetch failed, trying direct public GitHub API fallback...', err);
+      try {
+        const match = currentRepo.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/|$)/);
+        if (match) {
+          const owner = match[1];
+          const repo = match[2];
+
+          let ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
+          let treeData = null;
+          if (ghRes.ok) {
+            const data = await ghRes.json();
+            treeData = data.tree;
+          } else {
+            ghRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
+            if (ghRes.ok) {
+              const data = await ghRes.json();
+              treeData = data.tree;
+            }
+          }
+
+          if (treeData && Array.isArray(treeData)) {
+            const root = {};
+            for (const item of treeData) {
+              const parts = item.path.split('/');
+              let node = root;
+              for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (i === parts.length - 1) {
+                  node[part] = { type: item.type, path: item.path };
+                } else {
+                  if (!node[part]) node[part] = { type: 'tree', children: {} };
+                  if (!node[part].children) node[part].children = {};
+                  node = node[part].children;
+                }
+              }
+            }
+            setRepoTree(root);
+          } else {
+            const msg = err.response?.data?.message || 'Could not fetch repository structure. Ensure repository is public.';
+            setTreeError(msg);
+          }
+        } else {
+          setTreeError('Invalid GitHub repository URL format');
+        }
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        setTreeError('Could not load repository files.');
+      }
+    } finally {
+      setTreeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (team?.githubRepo && !repoTree && !treeLoading && activeTab === 'github') {
+      fetchRepoTree();
+    }
+  }, [team?.githubRepo, activeTab]);
 
   // Search & Filter state for Kanban
   const [searchQuery, setSearchQuery] = useState('');
@@ -527,10 +604,14 @@ export default function TeamWorkspacePage() {
     try {
       await api.patch(`/teams/${teamId}/repo-url`, { githubRepo: url });
       setTeam(t => ({ ...t, githubRepo: url }));
+      setRepoTree(null);
       toast.success('Repository URL updated!');
+      setTimeout(() => fetchRepoTree(true), 100);
     } catch (e) {
       setTeam(t => ({ ...t, githubRepo: url }));
+      setRepoTree(null);
       toast.success('Repository URL updated!');
+      setTimeout(() => fetchRepoTree(true), 100);
     }
   };
 
@@ -545,24 +626,24 @@ export default function TeamWorkspacePage() {
   }, [tasks, searchQuery, priorityFilter]);
 
   const RenderTree = ({ tree }) => {
-    if (!tree) return (
+    if (!tree || Object.keys(tree).length === 0) return (
       <div style={{ padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>
         No repository structure loaded yet. Link a public GitHub repo to explore code files.
       </div>
     );
     return (
-      <ul style={{ listStyle: 'none', paddingLeft: 16 }}>
+      <ul style={{ listStyle: 'none', paddingLeft: 12, margin: 0 }}>
         {Object.entries(tree).map(([name, node]) => (
           <li key={name} style={{ margin: '6px 0', fontSize: '0.85rem' }}>
             {node.type === 'tree' ? (
               <div>
                 <span style={{ color: '#fbbf24', marginRight: 6 }}>📁</span>
                 <strong style={{ color: '#fff' }}>{name}</strong>
-                <RenderTree tree={node.children} />
+                {node.children && <RenderTree tree={node.children} />}
               </div>
             ) : (
-              <div style={{ color: 'rgba(255,255,255,0.7)' }}>
-                <span style={{ color: '#ffffff', marginRight: 6 }}>📄</span>
+              <div style={{ color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#818cf8', fontSize: '0.8rem' }}>📄</span>
                 <span>{name}</span>
               </div>
             )}
@@ -1262,16 +1343,81 @@ export default function TeamWorkspacePage() {
               borderRadius: 20, padding: 24, background: 'rgba(16, 20, 32, 0.85)',
               border: '1px solid rgba(255,255,255,0.12)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  GitHub Repository Explorer
-                </h3>
-                <Link to="/repositories" style={{ color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none' }}>
-                  Open Repositories & Tree Visualizer Canvas →
-                </Link>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#fff', margin: 0 }}>
+                    GitHub Repository Explorer
+                  </h3>
+                  {team?.githubRepo && (
+                    <a href={team.githubRepo} target="_blank" rel="noreferrer" style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <FiGithub size={13} /> {team.githubRepo} <FiExternalLink size={11} />
+                    </a>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {team?.githubRepo && (
+                    <button
+                      onClick={() => fetchRepoTree(true)}
+                      disabled={treeLoading}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9,
+                        background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.16)',
+                        color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
+                      }}
+                    >
+                      <FiRefreshCw size={13} style={{ animation: treeLoading ? 'spin 1s linear infinite' : 'none' }} />
+                      <span>{treeLoading ? 'Fetching...' : 'Sync Code Tree 🔄'}</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={handleLinkRepo}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9,
+                      background: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.12)',
+                      color: '#ffffff', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer'
+                    }}
+                  >
+                    <FiEdit2 size={13} />
+                    <span>{team?.githubRepo ? 'Change Repo' : 'Link Repo'}</span>
+                  </button>
+                  <Link to="/repositories" style={{ color: '#818cf8', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', marginLeft: 6 }}>
+                    Tree Visualizer Canvas →
+                  </Link>
+                </div>
               </div>
 
-              <RenderTree tree={repoTree} />
+              {treeLoading ? (
+                <div style={{ padding: '40px 24px', textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: 8 }}>⚡</div>
+                  Fetching repository tree from GitHub...
+                </div>
+              ) : treeError ? (
+                <div style={{ padding: '30px 24px', textAlign: 'center', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: 14 }}>
+                  <div style={{ color: '#f87171', fontWeight: 700, fontSize: '0.9rem', marginBottom: 6 }}>{treeError}</div>
+                  <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', margin: '0 0 14px 0' }}>
+                    Make sure the linked repository is public and accessible.
+                  </p>
+                  <button
+                    onClick={() => fetchRepoTree(true)}
+                    style={{ padding: '7px 16px', borderRadius: 8, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : !team?.githubRepo ? (
+                <div style={{ padding: '40px 24px', textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                  <p style={{ margin: '0 0 14px 0' }}>No GitHub repository linked yet.</p>
+                  <button
+                    onClick={handleLinkRepo}
+                    style={{ padding: '9px 18px', borderRadius: 10, background: '#ffffff', border: 'none', color: '#060709', fontWeight: 800, fontSize: '0.82rem', cursor: 'pointer' }}
+                  >
+                    Link Public GitHub Repo
+                  </button>
+                </div>
+              ) : (
+                <RenderTree tree={repoTree} />
+              )}
             </div>
           )}
 

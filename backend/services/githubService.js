@@ -38,17 +38,20 @@ const buildTree = (flatItems) => {
 /**
  * Fetch repo tree from GitHub API (with caching on Team doc)
  */
-const getRepoTree = async (teamId, userId) => {
+const getRepoTree = async (teamId, userId, forceRefresh = false) => {
   const team = await Team.findById(teamId);
   if (!team) throw new ApiError(404, 'Team not found');
 
-  const isMember = team.members.map((m) => m.toString()).includes(userId.toString());
+  const isMember = team.members.some(
+    (m) => (m._id ? m._id.toString() : m.toString()) === userId.toString()
+  );
   if (!isMember) throw new ApiError(403, 'Not a team member');
 
   if (!team.githubRepo) throw new ApiError(400, 'No GitHub repository linked to this team');
 
-  // Return cached tree if fresh
+  // Return cached tree if fresh and not forced
   if (
+    !forceRefresh &&
     team.repoTree &&
     team.repoTreeFetchedAt &&
     Date.now() - new Date(team.repoTreeFetchedAt).getTime() < CACHE_TTL_MS
@@ -58,31 +61,40 @@ const getRepoTree = async (teamId, userId) => {
 
   const { owner, repo } = parseRepoUrl(team.githubRepo);
 
-  // Get default branch
   const headers = {
     Accept: 'application/vnd.github+json',
+    'User-Agent': 'CodeSprint-App',
     ...(process.env.GITHUB_TOKEN && { Authorization: `Bearer ${process.env.GITHUB_TOKEN}` }),
   };
 
-  const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, { headers });
-  const defaultBranch = repoRes.data.default_branch;
+  try {
+    const repoRes = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, { headers });
+    const defaultBranch = repoRes.data.default_branch || 'main';
 
-  // Get flat tree
-  const treeRes = await axios.get(
-    `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
-    { headers }
-  );
+    const treeRes = await axios.get(
+      `https://api.github.com/repos/${owner}/${repo}/git/trees/${defaultBranch}?recursive=1`,
+      { headers }
+    );
 
-  const flatItems = treeRes.data.tree.filter((item) => item.type === 'blob' || item.type === 'tree');
-  const nestedTree = buildTree(flatItems);
+    const flatItems = (treeRes.data.tree || []).filter((item) => item.type === 'blob' || item.type === 'tree');
+    const nestedTree = buildTree(flatItems);
 
-  // Cache on Team document
-  await Team.findByIdAndUpdate(teamId, {
-    repoTree: nestedTree,
-    repoTreeFetchedAt: new Date(),
-  });
+    await Team.findByIdAndUpdate(teamId, {
+      repoTree: nestedTree,
+      repoTreeFetchedAt: new Date(),
+    });
 
-  return { tree: nestedTree, cached: false };
+    return { tree: nestedTree, cached: false };
+  } catch (err) {
+    console.error('GitHub API error in getRepoTree:', err.message);
+    if (err.response?.status === 404) {
+      throw new ApiError(404, 'Repository not found. Please ensure it is a public GitHub repository.');
+    }
+    if (err.response?.status === 403) {
+      throw new ApiError(403, 'GitHub API rate limit reached or access forbidden.');
+    }
+    throw new ApiError(500, err.message || 'Failed to fetch repository tree from GitHub');
+  }
 };
 
 /**

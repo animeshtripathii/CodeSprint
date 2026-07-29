@@ -7,7 +7,8 @@ const ApiResponse = require('../utils/ApiResponse');
 
 // GET /api/teams/:teamId/repo-tree
 router.get('/:teamId/repo-tree', protect, asyncHandler(async (req, res) => {
-  const result = await githubService.getRepoTree(req.params.teamId, req.user._id);
+  const forceRefresh = req.query.refresh === '1' || req.query.refresh === 'true';
+  const result = await githubService.getRepoTree(req.params.teamId, req.user._id, forceRefresh);
   return res.status(200).json(new ApiResponse(200, result, 'Repo tree fetched'));
 }));
 
