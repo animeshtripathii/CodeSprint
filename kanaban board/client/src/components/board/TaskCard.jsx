@@ -37,9 +37,9 @@ const TaskCard = ({ task, onClick, overlay = false, boardLabels = [] }) => {
       {...listeners}
       onClick={() => !isDragging && onClick?.(task)}
       className={cn(
-        "group cursor-grab rounded-2xl border border-line bg-surface p-4 active:cursor-grabbing",
-        "shadow-[var(--shadow-card)] transition-shadow duration-200",
-        "hover:shadow-[var(--shadow-soft)]",
+        "liquid-glass group cursor-grab rounded-2xl border border-white/12 bg-white/[0.045] backdrop-blur-xl p-4 active:cursor-grabbing",
+        "shadow-[0_8px_24px_rgba(0,0,0,0.4)] transition-all duration-200",
+        "hover:bg-white/[0.07] hover:border-white/20 hover:shadow-[0_12px_32px_rgba(0,0,0,0.5)]",
         isDragging && "opacity-40",
         overlay && "rotate-2 cursor-grabbing shadow-[var(--shadow-lift)]"
       )}

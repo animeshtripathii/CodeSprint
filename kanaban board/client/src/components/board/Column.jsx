@@ -59,10 +59,17 @@ const Column = ({
   return (
     <div
       className={cn(
-        "flex h-full w-[330px] shrink-0 flex-col rounded-2xl p-2.5 transition-colors",
+        "liquid-glass flex h-full w-[330px] shrink-0 flex-col rounded-2xl p-3 transition-all duration-200",
         isOver && "ring-2 ring-inset"
       )}
-      style={{ backgroundColor: accent.soft, ...(isOver ? { "--tw-ring-color": accent.ring } : {}) }}
+      style={{
+        background: isOver ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.035)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        boxShadow: "0 12px 36px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15)",
+        ...(isOver ? { "--tw-ring-color": accent.ring } : {})
+      }}
     >
       {/* Header */}
       <div className="mb-2 flex items-center gap-2 px-1.5 pt-1">

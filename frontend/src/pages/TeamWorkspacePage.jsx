@@ -939,19 +939,27 @@ export default function TeamWorkspacePage() {
                           setDraggedTaskId(null);
                         }
                       }}
+                      className="liquid-glass"
                       style={{
-                        background: isOver ? 'rgba(27, 104, 255, 0.12)' : 'rgba(12, 14, 22, 0.75)',
-                        borderRadius: 18, padding: 14,
-                        border: `1px solid ${isOver ? col.color : col.border}`,
-                        display: 'flex', flexDirection: 'column', gap: 12, minHeight: 480,
-                        transition: 'all 0.2s ease',
-                        boxShadow: isOver ? `0 0 20px ${col.color}33` : 'none',
+                        background: isOver ? 'rgba(27, 104, 255, 0.15)' : 'rgba(255, 255, 255, 0.035)',
+                        backdropFilter: 'blur(24px) saturate(180%)',
+                        WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+                        borderRadius: 22, padding: 16,
+                        border: isOver ? `1.5px solid ${col.color}` : '1px solid rgba(255, 255, 255, 0.12)',
+                        display: 'flex', flexDirection: 'column', gap: 14, minHeight: 500,
+                        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+                        boxShadow: isOver
+                          ? `0 12px 36px rgba(0,0,0,0.5), 0 0 24px ${col.color}44`
+                          : '0 12px 36px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.15)',
                       }}
                     >
                       {/* Column Header */}
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '8px 12px', borderRadius: 10, background: col.bg, border: `1px solid ${col.border}`
+                        padding: '10px 14px', borderRadius: 14,
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        backdropFilter: 'blur(12px)',
+                        border: `1px solid ${col.border}`
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span>{col.icon}</span>
@@ -959,21 +967,24 @@ export default function TeamWorkspacePage() {
                         </div>
                         <span style={{
                           fontSize: '0.72rem', fontWeight: 800, color: col.color,
-                          background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 99
+                          background: 'rgba(255,255,255,0.1)', padding: '2px 9px', borderRadius: 99
                         }}>
                           {colTasks.length}
                         </span>
                       </div>
 
                       {/* Column Tasks List */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
                         {colTasks.length === 0 ? (
                           <div style={{
-                            padding: 24, textAlign: 'center', borderRadius: 12,
-                            border: '1px dashed rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.3)',
-                            fontSize: '0.78rem'
+                            padding: '36px 16px', textAlign: 'center', borderRadius: 16,
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            backdropFilter: 'blur(12px)',
+                            border: '1px dashed rgba(255, 255, 255, 0.14)',
+                            color: 'rgba(255, 255, 255, 0.4)',
+                            fontSize: '0.78rem', fontWeight: 500
                           }}>
-                            No tasks in {col.title}
+                            Drop tasks here
                           </div>
                         ) : (
                           colTasks.map(t => (
@@ -991,13 +1002,18 @@ export default function TeamWorkspacePage() {
                               }}
                               className="liquid-glass"
                               style={{
-                                borderRadius: 14, padding: 14, background: 'rgba(20, 24, 38, 0.95)',
-                                border: '1px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: 'column', gap: 8,
+                                borderRadius: 16, padding: 14,
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                backdropFilter: 'blur(16px) saturate(180%)',
+                                WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+                                border: '1px solid rgba(255, 255, 255, 0.14)',
+                                display: 'flex', flexDirection: 'column', gap: 8,
                                 position: 'relative',
                                 cursor: 'grab',
                                 opacity: draggedTaskId === t._id ? 0.4 : 1,
                                 transform: draggedTaskId === t._id ? 'scale(0.98)' : 'none',
-                                transition: 'all 0.15s ease',
+                                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
                               }}
                             >
                               {/* Task Header: Priority & Delete */}
