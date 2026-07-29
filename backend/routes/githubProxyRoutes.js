@@ -6,7 +6,7 @@ const { protect } = require('../middleware/auth');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 
-// Shared GitHub headers — always use the server token to avoid rate limits
+// Creates HTTP headers with GitHub authorization token
 const githubHeaders = () => ({
   Accept: 'application/vnd.github+json',
   'X-GitHub-Api-Version': '2022-11-28',
@@ -15,9 +15,7 @@ const githubHeaders = () => ({
   }),
 });
 
-// ── GET /api/github/repos/:username ─────────────────────────────────────────
-// Proxy for public repo listing — avoids client-side rate limiting (60 req/hr)
-// Authenticated server token gets 5 000 req/hr instead.
+// Fetches public GitHub repositories for a given username
 router.get('/repos/:username', protect, asyncHandler(async (req, res) => {
   const { username } = req.params;
   if (!username) throw new ApiError(400, 'GitHub username is required');
@@ -33,8 +31,7 @@ router.get('/repos/:username', protect, asyncHandler(async (req, res) => {
   );
 }));
 
-// ── GET /api/github/user/:username ───────────────────────────────────────────
-// Proxy for GitHub user profile info (avatar, bio, followers, etc.)
+// Fetches GitHub user profile details for a given username
 router.get('/user/:username', protect, asyncHandler(async (req, res) => {
   const { username } = req.params;
   if (!username) throw new ApiError(400, 'GitHub username is required');

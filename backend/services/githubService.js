@@ -4,18 +4,14 @@ const ApiError = require('../utils/ApiError');
 
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
-/**
- * Parse a GitHub repo URL and return { owner, repo }
- */
+// Extracts owner and repository name from a GitHub URL
 const parseRepoUrl = (url) => {
   const match = url.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?(?:\/|$)/);
   if (!match) throw new ApiError(400, 'Invalid GitHub repository URL');
   return { owner: match[1], repo: match[2] };
 };
 
-/**
- * Convert flat tree array → nested object tree
- */
+// Converts a list of file paths into a folder tree structure
 const buildTree = (flatItems) => {
   const root = {};
   for (const item of flatItems) {
@@ -35,9 +31,7 @@ const buildTree = (flatItems) => {
   return root;
 };
 
-/**
- * Fetch repo tree from GitHub API (with caching on Team doc)
- */
+// Fetches the file and folder tree of a team repository from GitHub
 const getRepoTree = async (teamId, userId, forceRefresh = false) => {
   const team = await Team.findById(teamId);
   if (!team) throw new ApiError(404, 'Team not found');
@@ -49,7 +43,7 @@ const getRepoTree = async (teamId, userId, forceRefresh = false) => {
 
   if (!team.githubRepo) throw new ApiError(400, 'No GitHub repository linked to this team');
 
-  // Return cached tree if fresh and not forced
+  // Returns cached file tree if it is fresh
   if (
     !forceRefresh &&
     team.repoTree &&
@@ -97,9 +91,7 @@ const getRepoTree = async (teamId, userId, forceRefresh = false) => {
   }
 };
 
-/**
- * Set / update the team's GitHub repo URL
- */
+// Updates the team's linked GitHub repository URL
 const setRepoUrl = async (teamId, leaderId, githubRepo) => {
   const team = await Team.findById(teamId);
   if (!team) throw new ApiError(404, 'Team not found');

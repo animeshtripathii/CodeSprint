@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 import api from '../services/api';
 
-/* ─── helpers ──────────────────────────────────────────────────────────────── */
+// Helper date functions
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -24,7 +24,7 @@ function sameDay(a, b) {
 }
 function isoDate(d) { return d.toISOString().slice(0, 10); }
 
-/* ─── event colour / type mapping per role ─────────────────────────────────── */
+// Maps calendar event types to display labels, colors, and icons
 const EVENT_META = {
   registration_deadline: { label: 'Reg. Deadline', color: '#ff6b6b', icon: AlertCircle },
   hackathon_start:       { label: 'Starts',         color: '#1b68ff', icon: Zap         },
@@ -34,7 +34,7 @@ const EVENT_META = {
   ongoing:               { label: 'Ongoing',         color: '#22c55e', icon: Trophy      },
 };
 
-/* Build calendar events from hackathon list depending on the viewer's role */
+// Generates calendar events for hackathons based on user role
 function buildEvents(hackathons, role, userId) {
   const events = [];
 
@@ -43,15 +43,12 @@ function buildEvents(hackathons, role, userId) {
     const start       = h.startDate            ? new Date(h.startDate)            : null;
     const end         = h.endDate              ? new Date(h.endDate)              : null;
 
-    // ── Always show start & end ───────────────────────────────────────────────
     if (start) events.push({ date: start, type: 'hackathon_start', hackathon: h });
     if (end)   events.push({ date: end,   type: 'hackathon_end',   hackathon: h });
 
-    // ── Role-specific extras ──────────────────────────────────────────────────
     if (role === 'participant') {
       if (regDeadline) events.push({ date: regDeadline, type: 'registration_deadline', hackathon: h });
       if (start && end) {
-        // mark all days in range as "ongoing" (just show badge on first day)
         const now = new Date();
         if (now >= start && now <= end) {
           events.push({ date: now, type: 'ongoing', hackathon: h });
@@ -61,12 +58,10 @@ function buildEvents(hackathons, role, userId) {
 
     if (role === 'organizer') {
       if (regDeadline) events.push({ date: regDeadline, type: 'registration_deadline', hackathon: h });
-      // submission due = end date for organizer
       if (end) events.push({ date: end, type: 'submission_due', hackathon: h });
     }
 
     if (role === 'judge') {
-      // Judging starts when hackathon ends
       if (end) events.push({ date: end, type: 'judging', hackathon: h });
     }
 
@@ -79,7 +74,7 @@ function buildEvents(hackathons, role, userId) {
   return events;
 }
 
-/* ─── tiny pill badge ───────────────────────────────────────────────────────── */
+// Renders a small badge representing an event on the calendar
 function EventPill({ event, onClick }) {
   const meta = EVENT_META[event.type] || { label: event.type, color: '#999', icon: Calendar };
   const Icon = meta.icon;
@@ -96,7 +91,7 @@ function EventPill({ event, onClick }) {
   );
 }
 
-/* ─── detail side panel ─────────────────────────────────────────────────────── */
+// Displays event details when a calendar day is clicked
 function DetailPanel({ events, date, onClose, navigate, role }) {
   if (!events.length) return null;
   return (
@@ -164,7 +159,7 @@ function DetailPanel({ events, date, onClose, navigate, role }) {
   );
 }
 
-/* ─── Legend ────────────────────────────────────────────────────────────────── */
+// Displays color legend for event types based on user role
 function Legend({ role }) {
   const types =
     role === 'participant' ? ['hackathon_start','hackathon_end','registration_deadline','ongoing'] :
