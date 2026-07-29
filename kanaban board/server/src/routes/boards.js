@@ -480,5 +480,63 @@ router.post('/:id/chat', async (req, res) => {
   }
 });
 
-export default router;
+// GET /api/boards/:id/labels — list labels for a board
+router.get('/:id/labels', async (req, res) => {
+  try {
+    const board = await Board.findOne({ _id: req.params.id, 'members.userId': req.user._id }).lean();
+    if (!board) return res.status(404).json({ error: 'Board not found' });
+    res.json(board.labels || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
+// POST /api/boards/:id/labels — create a new label
+router.post('/:id/labels', async (req, res) => {
+  try {
+    const board = await Board.findOne({ _id: req.params.id, 'members.userId': req.user._id });
+    if (!board) return res.status(404).json({ error: 'Board not found' });
+    const { name, color } = req.body;
+    if (!name) return res.status(400).json({ error: 'Label name is required' });
+    board.labels.push({ name: name.trim(), color: color || '#6366f1' });
+    await board.save();
+    const newLabel = board.labels[board.labels.length - 1];
+    io.to(req.params.id).emit('board:labels_updated', board.labels);
+    res.status(201).json(newLabel);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/boards/:id/labels/:labelId — update a label
+router.patch('/:id/labels/:labelId', async (req, res) => {
+  try {
+    const board = await Board.findOne({ _id: req.params.id, 'members.userId': req.user._id });
+    if (!board) return res.status(404).json({ error: 'Board not found' });
+    const label = board.labels.id(req.params.labelId);
+    if (!label) return res.status(404).json({ error: 'Label not found' });
+    if (req.body.name !== undefined) label.name = req.body.name.trim();
+    if (req.body.color !== undefined) label.color = req.body.color;
+    await board.save();
+    io.to(req.params.id).emit('board:labels_updated', board.labels);
+    res.json(label);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/boards/:id/labels/:labelId — delete a label
+router.delete('/:id/labels/:labelId', async (req, res) => {
+  try {
+    const board = await Board.findOne({ _id: req.params.id, 'members.userId': req.user._id });
+    if (!board) return res.status(404).json({ error: 'Board not found' });
+    board.labels = board.labels.filter(l => l._id.toString() !== req.params.labelId);
+    await board.save();
+    io.to(req.params.id).emit('board:labels_updated', board.labels);
+    res.json({ message: 'Label deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;

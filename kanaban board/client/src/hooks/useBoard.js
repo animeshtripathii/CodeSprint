@@ -279,10 +279,22 @@ export const useBoard = (boardId) => {
     [boardId]
   );
 
+  const setColumnWipLimit = useCallback(
+    async (columnId, wipLimit) => {
+      setColumns((p) => p.map((c) => (c.id === columnId ? { ...c, wip_limit: wipLimit } : c)));
+      try {
+        await columnApi.update(null, columnId, { wip_limit: wipLimit });
+      } catch (err) {
+        toast.error(err.message);
+      }
+    },
+    []
+  );
+
   return {
     board, columns, tasks, members, role, loading, error, presence,
     setBoard, setMembers,
     createTask, updateTask, deleteTask, moveTask, upsertTask,
-    addColumn, renameColumn, deleteColumn,
+    addColumn, renameColumn, deleteColumn, setColumnWipLimit,
   };
 };

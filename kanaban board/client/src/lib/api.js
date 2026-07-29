@@ -97,6 +97,8 @@ export const columnApi = {
     api.post(`/boards/${boardId}/columns`, data).then((r) => r.data),
   update: (boardId, columnId, data) =>
     api.patch(`/columns/${columnId}`, data).then((r) => r.data),
+  setWipLimit: (boardId, columnId, wipLimit) =>
+    api.patch(`/columns/${columnId}`, { wip_limit: wipLimit }).then((r) => r.data),
   remove: (boardId, columnId) =>
     api.delete(`/columns/${columnId}`).then((r) => r.data),
 };
@@ -132,6 +134,19 @@ export const aiApi = {
   // Returns { headline, completed[], inProgress[], risks[], recommendations[] }
   summary: (boardId) =>
     api.post(`/ai/summary`, { boardId }).then((r) => r.data.summary),
+};
+
+export const commentApi = {
+  list: (taskId) => api.get(`/comments/${taskId}`).then((r) => r.data),
+  create: (taskId, body) => api.post(`/comments/${taskId}`, { body }).then((r) => r.data),
+  remove: (commentId) => api.delete(`/comments/${commentId}`).then((r) => r.data),
+};
+
+export const labelApi = {
+  list: (boardId) => api.get(`/boards/${boardId}/labels`).then((r) => r.data),
+  create: (boardId, data) => api.post(`/boards/${boardId}/labels`, data).then((r) => r.data),
+  update: (boardId, labelId, data) => api.patch(`/boards/${boardId}/labels/${labelId}`, data).then((r) => r.data),
+  remove: (boardId, labelId) => api.delete(`/boards/${boardId}/labels/${labelId}`).then((r) => r.data),
 };
 
 export const notificationApi = {

@@ -1,23 +1,37 @@
 import { useState, useRef, useEffect } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Plus, MoreHorizontal, Trash2, Sparkles, Pencil } from "lucide-react";
+import { Plus, MoreHorizontal, Trash2, Sparkles, Pencil, Gauge } from "lucide-react";
 import TaskCard from "./TaskCard";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import { cn, columnAccent } from "../../lib/utils";
 
-const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, onDelete, onAiGenerate }) => {
+const Column = ({
+  column,
+  tasks,
+  index = 0,
+  onTaskClick,
+  onAddTask,
+  onRename,
+  onDelete,
+  onAiGenerate,
+  onSetWipLimit,
+  boardLabels = [],
+}) => {
   const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { type: "column", column } });
   const accent = columnAccent(index);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [wipEditing, setWipEditing] = useState(false);
+  const [wipInput, setWipInput] = useState("");
   const [title, setTitle] = useState(column.title);
   const menuRef = useRef(null);
 
   useEffect(() => setTitle(column.title), [column.title]);
   useEffect(() => {
-    const onClick = (e) => menuRef.current && !menuRef.current.contains(e.target) && setMenuOpen(false);
+    const onClick = (e) =>
+      menuRef.current && !menuRef.current.contains(e.target) && setMenuOpen(false);
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
@@ -28,6 +42,19 @@ const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, on
     if (t && t !== column.title) onRename(column.id, t);
     else setTitle(column.title);
   };
+
+  const handleWipSave = () => {
+    setWipEditing(false);
+    const val = wipInput.trim() === "" ? null : parseInt(wipInput, 10);
+    if (val !== column.wip_limit && !(isNaN(val) && wipInput !== "")) {
+      onSetWipLimit?.(column.id, isNaN(val) ? null : val);
+    }
+  };
+
+  // WIP state
+  const wipLimit = column.wip_limit ?? column.wipLimit ?? null;
+  const wipExceeded = wipLimit !== null && tasks.length > wipLimit;
+  const wipNear = wipLimit !== null && !wipExceeded && tasks.length === wipLimit;
 
   return (
     <div
@@ -50,13 +77,32 @@ const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, on
             className="w-full rounded bg-surface px-2 py-0.5 text-sm font-semibold outline-none"
           />
         ) : (
-          <h3 className="cursor-text font-display text-[15px] font-bold tracking-tight text-ink" onDoubleClick={() => setEditing(true)}>
+          <h3
+            className="cursor-text font-display text-[15px] font-bold tracking-tight text-ink"
+            onDoubleClick={() => setEditing(true)}
+          >
             {column.title}
           </h3>
         )}
-        <span className="rounded-full bg-surface px-2 py-0.5 text-xs font-semibold tabular text-muted shadow-[var(--shadow-card)]">
-          {tasks.length}
-        </span>
+
+        {/* Task count + WIP badge */}
+        <div className="flex items-center gap-1">
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-semibold tabular shadow-[var(--shadow-card)]",
+              wipExceeded
+                ? "bg-priority-urgent/15 text-priority-urgent"
+                : wipNear
+                ? "bg-amber-100 text-amber-700"
+                : "bg-surface text-muted"
+            )}
+          >
+            {tasks.length}
+            {wipLimit !== null && (
+              <span className="text-faint">/{wipLimit}</span>
+            )}
+          </span>
+        </div>
 
         <div className="ml-auto flex items-center gap-0.5">
           <button
@@ -74,15 +120,36 @@ const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, on
               <MoreHorizontal className="h-4 w-4" />
             </button>
             {menuOpen && (
-              <div className="card animate-in absolute right-0 z-10 mt-1 w-44 rounded-2xl p-1.5 shadow-[var(--shadow-lift)]">
-                <MenuItem icon={Sparkles} onClick={() => { setMenuOpen(false); onAiGenerate(column.id); }}>
+              <div
+                className="card absolute right-0 z-10 mt-1 w-48 rounded-2xl p-1.5 shadow-[var(--shadow-lift)]"
+                style={{ animation: "col-menu-in 0.15s ease-out both" }}
+              >
+                <style>{`@keyframes col-menu-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
+                <MenuItem
+                  icon={Sparkles}
+                  onClick={() => { setMenuOpen(false); onAiGenerate(column.id); }}
+                >
                   Generate with AI
                 </MenuItem>
                 <MenuItem icon={Pencil} onClick={() => { setMenuOpen(false); setEditing(true); }}>
                   Rename
                 </MenuItem>
+                <MenuItem
+                  icon={Gauge}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setWipInput(wipLimit !== null ? String(wipLimit) : "");
+                    setWipEditing(true);
+                  }}
+                >
+                  {wipLimit !== null ? `WIP limit: ${wipLimit}` : "Set WIP limit"}
+                </MenuItem>
                 <div className="my-1 border-t" />
-                <MenuItem icon={Trash2} danger onClick={() => { setMenuOpen(false); setConfirmOpen(true); }}>
+                <MenuItem
+                  icon={Trash2}
+                  danger
+                  onClick={() => { setMenuOpen(false); setConfirmOpen(true); }}
+                >
                   Delete column
                 </MenuItem>
               </div>
@@ -91,11 +158,55 @@ const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, on
         </div>
       </div>
 
+      {/* WIP limit exceeded banner */}
+      {wipExceeded && (
+        <div className="mb-2 rounded-xl bg-priority-urgent/10 px-3 py-1.5 text-[11px] font-medium text-priority-urgent">
+          ⚠ WIP limit exceeded ({tasks.length}/{wipLimit})
+        </div>
+      )}
+
+      {/* WIP inline editor */}
+      {wipEditing && (
+        <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2">
+          <Gauge className="h-3.5 w-3.5 shrink-0 text-faint" />
+          <input
+            autoFocus
+            type="number"
+            min="1"
+            value={wipInput}
+            onChange={(e) => setWipInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleWipSave();
+              if (e.key === "Escape") setWipEditing(false);
+            }}
+            placeholder="Enter limit (empty = none)"
+            className="flex-1 bg-transparent text-xs outline-none placeholder:text-faint"
+          />
+          <button
+            onClick={handleWipSave}
+            className="rounded bg-brand-500 px-2 py-0.5 text-[11px] font-semibold text-white hover:bg-brand-600"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setWipEditing(false)}
+            className="text-[11px] text-faint hover:text-ink"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* Drop zone */}
       <div ref={setNodeRef} className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-0.5 pb-1 no-scrollbar">
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} onClick={onTaskClick} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              onClick={onTaskClick}
+              boardLabels={boardLabels}
+            />
           ))}
         </SortableContext>
 
@@ -112,7 +223,7 @@ const Column = ({ column, tasks, index = 0, onTaskClick, onAddTask, onRename, on
         onClose={() => setConfirmOpen(false)}
         onConfirm={() => { onDelete(column.id); setConfirmOpen(false); }}
         title="Delete column?"
-        description={`“${column.title}” and all its tasks will be permanently removed. This can’t be undone.`}
+        description={`"${column.title}" and all its tasks will be permanently removed. This can't be undone.`}
         confirmLabel="Delete column"
         danger
       />

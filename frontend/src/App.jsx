@@ -28,6 +28,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const RepositoriesPage = lazy(() => import('./pages/RepositoriesPage'));
 const RepoTreePage = lazy(() => import('./pages/RepoTreePage'));
 const KanbanPage = lazy(() => import('./pages/KanbanPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 const PageLoader = () => (
@@ -83,6 +84,7 @@ function AppRoutes() {
         <Route path="/repositories" element={<ProtectedRoute><RepositoriesPage /></ProtectedRoute>} />
         <Route path="/repositories/:owner/:repo" element={<ProtectedRoute><RepoTreePage /></ProtectedRoute>} />
         <Route path="/kanban" element={<ProtectedRoute><KanbanPage /></ProtectedRoute>} />
+        <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
         <Route path="/hackathons" element={<ProtectedRoute><HackathonsPage /></ProtectedRoute>} />
         <Route path="/hackathons/create" element={<ProtectedRoute><CreateHackathonPage /></ProtectedRoute>} />
         <Route path="/hackathons/:id" element={<ProtectedRoute><HackathonDetailPage /></ProtectedRoute>} />

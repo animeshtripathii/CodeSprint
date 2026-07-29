@@ -22,9 +22,10 @@ router.patch('/:id', async (req, res) => {
     });
     if (!board) return res.status(403).json({ error: 'Access denied' });
 
-    const { title, position } = req.body;
+    const { title, position, wipLimit } = req.body;
     if (title !== undefined) column.title = title;
     if (position !== undefined) column.position = position;
+    if (wipLimit !== undefined) column.wipLimit = wipLimit === '' || wipLimit === null ? null : Number(wipLimit);
     await column.save();
 
     const event = title !== undefined ? 'column:renamed' : 'column:reordered';

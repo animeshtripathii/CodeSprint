@@ -22,7 +22,7 @@ const positionForIndex = (siblings, index) => {
   return (prev + next) / 2;
 };
 
-const KanbanBoard = ({ columns, tasks, actions, onTaskClick, onAddTask, onAiGenerate, onAddColumn }) => {
+const KanbanBoard = ({ columns, tasks, actions, onTaskClick, onAddTask, onAiGenerate, onAddColumn, boardLabels = [] }) => {
   const [activeTask, setActiveTask] = useState(null);
 
   const sensors = useSensors(
@@ -99,6 +99,8 @@ const KanbanBoard = ({ columns, tasks, actions, onTaskClick, onAddTask, onAiGene
             onAiGenerate={onAiGenerate}
             onRename={actions.renameColumn}
             onDelete={actions.deleteColumn}
+            onSetWipLimit={actions.setColumnWipLimit}
+            boardLabels={boardLabels}
           />
         ))}
 
@@ -114,7 +116,7 @@ const KanbanBoard = ({ columns, tasks, actions, onTaskClick, onAddTask, onAiGene
       <DragOverlay>
         {activeTask ? (
           <div className="w-[314px]">
-            <TaskCard task={activeTask} overlay />
+            <TaskCard task={activeTask} overlay boardLabels={boardLabels} />
           </div>
         ) : null}
       </DragOverlay>

@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sliders,
-  User
+  User,
+  Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -66,6 +67,7 @@ export default function Sidebar() {
     organizer: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
       { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
+      { to: '/calendar', label: 'Calendar', icon: <Calendar size={16} /> },
       { to: '/hackathons', label: 'My Hackathons', icon: <Trophy size={16} /> },
       { to: '/hackathons/create', label: 'Create Hackathon', icon: <Plus size={16} /> },
       { to: '/dashboard?action=registrations', label: 'Registrations', icon: <Users size={16} /> },
@@ -74,6 +76,7 @@ export default function Sidebar() {
     judge: [
       { to: '/dashboard', label: 'Judge Console', icon: <LayoutGrid size={16} /> },
       { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
+      { to: '/calendar', label: 'Calendar', icon: <Calendar size={16} /> },
       { to: '/dashboard', label: 'Submissions', icon: <FileText size={16} /> },
       { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
       { to: '/dashboard', label: 'Scoring Criteria', icon: <Sliders size={16} /> },
@@ -81,6 +84,7 @@ export default function Sidebar() {
     participant: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
       { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
+      { to: '/calendar', label: 'Calendar', icon: <Calendar size={16} /> },
       { to: '/hackathons', label: 'Explore Hackathons', icon: <Trophy size={16} /> },
       { to: '/repositories', label: 'Repositories', icon: <FolderGit2 size={16} /> },
       { to: '/kanban', label: 'Kanban Board', icon: <Kanban size={16} /> },

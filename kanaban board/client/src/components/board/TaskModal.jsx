@@ -4,6 +4,8 @@ import { Trash2, GitBranch, Loader2, CheckSquare, Square, Plus, X } from "lucide
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
 import { Input, Textarea, Select } from "../ui/Input";
+import LabelPicker from "./LabelPicker";
+import TaskComments from "./TaskComments";
 import { PRIORITIES } from "../../lib/utils";
 
 const toDateInput = (value) => {
@@ -21,9 +23,23 @@ const empty = (columnId) => ({
   assignee_id: "",
   column_id: columnId || "",
   subtasks: [],
+  label_ids: [],
 });
 
-const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, actions, onBreakdown }) => {
+const TaskModal = ({
+  open,
+  onClose,
+  task,
+  defaultColumnId,
+  columns,
+  members,
+  actions,
+  onBreakdown,
+  boardId,
+  boardLabels = [],
+  currentUser,
+  onLabelsChange,
+}) => {
   const isEdit = Boolean(task);
   const [form, setForm] = useState(empty(defaultColumnId));
   const [saving, setSaving] = useState(false);
@@ -41,6 +57,7 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
         assignee_id: task.assignee_id || "",
         column_id: task.column_id,
         subtasks: task.subtasks || [],
+        label_ids: task.label_ids || task.labelIds || [],
       });
     } else {
       setForm(empty(defaultColumnId || columns[0]?.id));
@@ -49,6 +66,9 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
   }, [open, task, defaultColumnId, columns]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Label toggle
+  const handleLabelChange = (newIds) => setForm((f) => ({ ...f, label_ids: newIds }));
 
   // Subtask helpers
   const toggleSubtask = (i) => {
@@ -90,6 +110,7 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
       due_date: form.due_date || null,
       assignee_id: form.assignee_id || null,
       subtasks: form.subtasks,
+      label_ids: form.label_ids,
     };
     try {
       if (isEdit) {
@@ -122,7 +143,7 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "Edit task" : "New task"} size="md">
+    <Modal open={open} onClose={onClose} title={isEdit ? "Edit task" : "New task"} size="lg">
       <form onSubmit={onSubmit} className="space-y-4">
         <Input label="Title" placeholder="What needs to be done?" autoFocus value={form.title} onChange={set("title")} />
         <Textarea label="Description" rows={3} placeholder="Add more detail…" value={form.description} onChange={set("description")} />
@@ -151,6 +172,17 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
             </Select>
           )}
         </div>
+
+        {/* Labels */}
+        {boardId && (
+          <LabelPicker
+            boardId={boardId}
+            boardLabels={boardLabels}
+            selectedIds={form.label_ids}
+            onChange={handleLabelChange}
+            onLabelsChange={onLabelsChange}
+          />
+        )}
 
         {/* Subtask / Checklist section */}
         {(isEdit || form.subtasks.length > 0) && (
@@ -239,6 +271,13 @@ const TaskModal = ({ open, onClose, task, defaultColumnId, columns, members, act
           </div>
         </div>
       </form>
+
+      {/* Comments — only shown for existing tasks */}
+      {isEdit && task?.id && (
+        <div className="mt-6 border-t pt-5">
+          <TaskComments taskId={task.id} currentUser={currentUser} />
+        </div>
+      )}
     </Modal>
   );
 };

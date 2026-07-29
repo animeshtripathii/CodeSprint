@@ -74,4 +74,29 @@ router.post('/:taskId', async (req, res) => {
   }
 });
 
+// DELETE /api/comments/:commentId — Delete own comment
+router.delete('/:commentId', async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+    if (!comment) return res.status(404).json({ error: 'Comment not found' });
+    if (comment.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'You can only delete your own comments' });
+    }
+
+    const task = await Task.findById(comment.taskId).lean();
+    await comment.deleteOne();
+
+    if (task) {
+      io.to(task.boardId.toString()).emit('comment:deleted', {
+        commentId: req.params.commentId,
+        taskId: comment.taskId.toString(),
+      });
+    }
+
+    res.json({ message: 'Comment deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;
