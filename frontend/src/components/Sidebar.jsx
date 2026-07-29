@@ -62,7 +62,7 @@ export default function Sidebar() {
     }
   }, [role]);
 
-  // ── Role Specific Main Nav Items ──
+  // Main navigation links categorized by user role
   const navItems = {
     organizer: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
@@ -95,7 +95,7 @@ export default function Sidebar() {
     { to: '/hackathons', label: 'Hackathons', icon: <Trophy size={16} /> },
   ];
 
-  // ── Role Specific AI Tools ──
+  // AI assistant tools categorized by user role
   const aiTools = {
     organizer: [
       { label: 'AI Timeline Generator', desc: 'Auto-generate schedule milestones', action: () => toast('AI Timeline Assistant: Generating hackathon schedule... 🤖') },

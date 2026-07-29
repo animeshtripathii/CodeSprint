@@ -4,14 +4,14 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Pages
+// Directly loaded page components
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HackathonsPage from './pages/HackathonsPage';
 import DashboardPage from './pages/DashboardPage';
 
-// Lazy pages (loaded on demand)
+// Lazy loaded page components for optimal bundle splitting
 import { lazy, Suspense, useState, useEffect } from 'react';
 const HackathonDetailPage = lazy(() => import('./pages/HackathonDetailPage'));
 const JoinTeamPage = lazy(() => import('./pages/JoinTeamPage'));
@@ -31,6 +31,7 @@ const KanbanPage = lazy(() => import('./pages/KanbanPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Displays full-screen loading spinner while app initializes
 const PageLoader = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#08090d' }}>
     <div style={{ textAlign: 'center' }}>
@@ -45,6 +46,7 @@ const PageLoader = () => (
   </div>
 );
 
+// Handles Clerk SSO authentication callback redirect
 function SSOCallback() {
   const [redirectUrl] = useState(() => localStorage.getItem('auth_redirect') || '/dashboard');
   useEffect(() => {
@@ -61,6 +63,7 @@ function SSOCallback() {
   );
 }
 
+// Configures all public and protected application routes
 function AppRoutes() {
   const { user, initializing } = useAuth();
 
@@ -69,15 +72,15 @@ function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public */}
+        {/* Public landing routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/sso-callback" element={<SSOCallback />} />
 
-        {/* Auth — redirect if already logged in */}
+        {/* Authentication routes */}
         <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
 
-        {/* Protected — All authenticated roles */}
+        {/* Protected application routes */}
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />

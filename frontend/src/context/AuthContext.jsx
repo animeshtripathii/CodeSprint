@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
 
-  // Synchronize Clerk user with backend API & save JWT token
+  // Syncs authenticated Clerk user profile with backend database
   useEffect(() => {
     if (clerkLoaded) {
       if (clerkUser) {
@@ -30,8 +30,7 @@ export const AuthProvider = ({ children }) => {
           })
           .catch((err) => {
             const status = err?.response?.status;
-            // 403 = account deleted/blocked, 401 = account no longer exists
-            // In either case, force a full sign-out — do NOT let the user reach the dashboard.
+            // Signs out user if account is deleted or unauthorized
             if (status === 403 || status === 401) {
               clerk.signOut().catch(() => {});
               localStorage.removeItem('hf_token');
@@ -39,8 +38,7 @@ export const AuthProvider = ({ children }) => {
               setLocalUser(null);
               return;
             }
-            // Network error or 5xx — use a minimal fallback so the UI doesn't break,
-            // but do NOT invent a role; default to participant until next sync.
+            // Fallback user state when network connection fails
             const fallbackUser = {
               _id: clerkUser.id,
               name,

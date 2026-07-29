@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-// Determine backend socket server URL dynamically
+// Returns the root URL of the backend socket server
 const getSocketUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   return apiUrl.replace(/\/api\/?$/, '');
@@ -8,6 +8,7 @@ const getSocketUrl = () => {
 
 let socket = null;
 
+// Connects and returns the shared Socket.io client instance
 export const getSocket = () => {
   if (!socket) {
     socket = io(getSocketUrl(), {
@@ -18,10 +19,12 @@ export const getSocket = () => {
       reconnectionDelay: 1000,
     });
 
+    // Logs when socket successfully connects to server
     socket.on('connect', () => {
       console.log('⚡ Socket.io connected:', socket.id);
     });
 
+    // Logs connection errors when socket fails to connect
     socket.on('connect_error', (err) => {
       console.warn('⚠️ Socket connection error:', err.message);
     });
@@ -29,6 +32,7 @@ export const getSocket = () => {
   return socket;
 };
 
+// Disconnects the active Socket.io client connection
 export const disconnectSocket = () => {
   if (socket) {
     socket.disconnect();

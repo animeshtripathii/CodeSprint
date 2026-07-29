@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Returns the backend API base URL
 const getBaseUrl = () => {
   let url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   url = url.trim().replace(/\/+$/, '');
@@ -9,19 +10,20 @@ const getBaseUrl = () => {
   return url;
 };
 
+// Creates Axios instance with base URL configuration
 const api = axios.create({
   baseURL: getBaseUrl(),
   withCredentials: true,
 });
 
-// Attach JWT from localStorage
+// Attaches user authentication token to outgoing HTTP requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('hf_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Handle 401 → clear token safely without hard page reload loops
+// Clears user authentication token on unauthorized API response
 api.interceptors.response.use(
   (res) => res,
   (err) => {

@@ -7,7 +7,7 @@ const connectDB = require('./config/db');
 
 const PORT = process.env.PORT || 5000;
 
-// ─── Create HTTP server & attach Socket.io ─────────────────────────────────
+// Creates the HTTP server and attaches Socket.io real-time server
 const httpServer = http.createServer(app);
 
 const allowedOrigins = [
@@ -32,57 +32,60 @@ const io = new Server(httpServer, {
   },
 });
 
-// Make io accessible to route handlers
+// Attaches Socket.io instance to Express app for global access
 app.set('io', io);
 
-// ─── Socket.io events ──────────────────────────────────────────────────────
+// Handles real-time socket connections and room subscriptions
 io.on('connection', (socket) => {
   console.log(`🔌 Socket connected: ${socket.id}`);
 
-  // Join a team's private room
+  // Adds socket client to team room
   socket.on('joinTeam', (teamId) => {
     socket.join(teamId);
     console.log(`Socket ${socket.id} joined team room: ${teamId}`);
   });
 
-  // Leave a team's room
+  // Removes socket client from team room
   socket.on('leaveTeam', (teamId) => {
     socket.leave(teamId);
     console.log(`Socket ${socket.id} left team room: ${teamId}`);
   });
 
-  // Join a Hackathon Community room (Participants, Organizers, Judges)
+  // Adds socket client to hackathon community room
   socket.on('joinHackathon', (hackathonId) => {
     const room = `hackathon_${hackathonId}`;
     socket.join(room);
     console.log(`Socket ${socket.id} joined community room: ${room}`);
   });
 
+  // Removes socket client from hackathon community room
   socket.on('leaveHackathon', (hackathonId) => {
     const room = `hackathon_${hackathonId}`;
     socket.leave(room);
     console.log(`Socket ${socket.id} left community room: ${room}`);
   });
 
-  // Join a private Judge & Organizer Lounge room
+  // Adds socket client to judge lounge room
   socket.on('joinJudgeRoom', (hackathonId) => {
     const room = `judge_${hackathonId}`;
     socket.join(room);
     console.log(`Socket ${socket.id} joined judge room: ${room}`);
   });
 
+  // Removes socket client from judge lounge room
   socket.on('leaveJudgeRoom', (hackathonId) => {
     const room = `judge_${hackathonId}`;
     socket.leave(room);
     console.log(`Socket ${socket.id} left judge room: ${room}`);
   });
 
+  // Handles socket client disconnection
   socket.on('disconnect', () => {
     console.log(`🔌 Socket disconnected: ${socket.id}`);
   });
 });
 
-// ─── Start server ──────────────────────────────────────────────────────────
+// Connects to MongoDB database and starts listening on designated port
 const startServer = async () => {
   await connectDB();
 

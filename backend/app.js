@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter, authLimiter, aiLimiter } = require('./middleware/rateLimiter');
 
-// Route imports
+// Import all API route modules
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const hackathonRoutes = require('./routes/hackathonRoutes');
@@ -25,10 +25,10 @@ const communityRoutes = require('./routes/communityRoutes');
 
 const app = express();
 
-// Trust reverse proxy (Render, Vercel, Nginx)
+// Trust reverse proxy for deployment platforms
 app.set('trust proxy', 1);
 
-// ─── CORS ──────────────────────────────────────────────────────────────────
+// Configure CORS policy for allowed client domains
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:3000',
@@ -42,12 +42,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, Postman or server-to-server)
+      // Allow requests from client origins or requests without origin header
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Fallback to allow client requests in production
+      return callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -55,27 +55,27 @@ app.use(
   })
 );
 
-// ─── Body parsers & utilities ──────────────────────────────────────────────
+// Middleware for parsing JSON requests and cookies
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// ─── HTTP logger (dev only) ────────────────────────────────────────────────
+// Enable HTTP request logging in development
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// ─── Health check ─────────────────────────────────────────────────────────
+// Health check endpoint to confirm API is running
 app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: '🚀 CodeSprint API is running!' });
 });
 
-// ─── API Rate Limiters ────────────────────────────────────────────────────
+// Apply rate limiting middleware to routes
 app.use('/api/auth', authLimiter);
 app.use('/api/ai', aiLimiter);
 app.use('/api', apiLimiter);
 
-// ─── API Routes ───────────────────────────────────────────────────────────
+// Register application route handlers
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hackathons', hackathonRoutes);
@@ -92,12 +92,12 @@ app.use('/api/teams', githubRoutes);
 app.use('/api/github', githubProxyRoutes);
 app.use('/api/community', communityRoutes);
 
-// ─── 404 handler ──────────────────────────────────────────────────────────
+// Handles requests to unknown endpoints
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.originalUrl} not found` });
 });
 
-// ─── Global error handler (must be last) ──────────────────────────────────
+// Global error handler middleware
 app.use(errorHandler);
 
 module.exports = app;
