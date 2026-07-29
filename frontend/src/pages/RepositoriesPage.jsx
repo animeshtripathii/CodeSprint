@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import {
   FolderGit2,
   Search,
@@ -60,21 +61,20 @@ export default function RepositoriesPage() {
 
   const fetchRepos = () => {
     setLoading(true);
-    fetch(`https://api.github.com/users/${ghUsername}/repos?sort=updated&per_page=100`)
+    api.get(`/github/repos/${ghUsername}`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch repositories');
-        return res.json();
-      })
-      .then(data => {
-        if (Array.isArray(data)) {
-          setRepos(data);
-        } else {
-          setRepos([]);
-        }
+        const data = res.data?.data || res.data;
+        setRepos(Array.isArray(data) ? data : []);
       })
       .catch(err => {
         console.error(err);
-        toast.error('Could not load GitHub repositories');
+        const msg = err.response?.data?.message || 'Could not load GitHub repositories';
+        // Surface rate-limit errors clearly
+        if (err.response?.status === 403 || err.response?.status === 429) {
+          toast.error('GitHub API rate limit reached. Please add a GITHUB_TOKEN in the backend .env file.');
+        } else {
+          toast.error(msg);
+        }
       })
       .finally(() => setLoading(false));
   };

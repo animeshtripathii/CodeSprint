@@ -20,6 +20,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const githubRoutes = require('./routes/githubRoutes');
+const githubProxyRoutes = require('./routes/githubProxyRoutes');
 const communityRoutes = require('./routes/communityRoutes');
 
 const app = express();
@@ -88,6 +89,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/teams', githubRoutes);
+app.use('/api/github', githubProxyRoutes);
 app.use('/api/community', communityRoutes);
 
 // ─── 404 handler ──────────────────────────────────────────────────────────
