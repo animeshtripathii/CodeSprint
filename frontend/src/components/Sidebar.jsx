@@ -43,6 +43,8 @@ export default function Sidebar() {
   const [projectTab, setProjectTab] = useState('creations');
   const [githubConnected, setGithubConnected] = useState(false);
   const [userHackathons, setUserHackathons] = useState([]);
+  const [userTeams, setUserTeams] = useState([]);
+  const [userRegistrations, setUserRegistrations] = useState([]);
   const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true');
 
   const toggleCollapse = () => {
@@ -59,6 +61,13 @@ export default function Sidebar() {
   useEffect(() => {
     if (role === 'organizer') {
       api.get('/dashboard/organizer').then(r => setUserHackathons(r.data.data?.hackathons || [])).catch(() => {});
+    } else {
+      api.get('/dashboard/participant').then(r => {
+        const teams = r.data.data?.teams || [];
+        const regs = r.data.data?.registrations || [];
+        setUserTeams(teams);
+        setUserRegistrations(regs);
+      }).catch(() => {});
     }
   }, [role]);
 
@@ -317,42 +326,92 @@ export default function Sidebar() {
 
       {role === 'participant' && !isCollapsed && (
         <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
             <span>── MY PROJECTS ──</span>
           </div>
 
-          <div style={{ display: 'flex', padding: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', padding: 3, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, marginBottom: 10 }}>
             <button
               onClick={() => setProjectTab('creations')}
               style={{
                 flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-                background: projectTab === 'creations' ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: projectTab === 'creations' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                background: projectTab === 'creations' ? 'rgba(255,255,255,0.14)' : 'transparent',
+                color: projectTab === 'creations' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.15s'
               }}
             >
-              My Creations
+              My Creations ({userRegistrations.length})
             </button>
             <button
               onClick={() => setProjectTab('team')}
               style={{
                 flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, fontSize: '0.72rem', fontWeight: 600,
-                background: projectTab === 'team' ? 'rgba(255,255,255,0.12)' : 'transparent',
-                color: projectTab === 'team' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer'
+                background: projectTab === 'team' ? 'rgba(255,255,255,0.14)' : 'transparent',
+                color: projectTab === 'team' ? '#fff' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.15s'
               }}
             >
-              Team Projects
+              Team Projects ({userTeams.length})
             </button>
           </div>
 
+          {/* Dynamic List based on active tab */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10, maxHeight: 150, overflowY: 'auto' }}>
+            {projectTab === 'creations' ? (
+              userRegistrations.length === 0 ? (
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '8px 0' }}>
+                  No registered hackathons yet
+                </div>
+              ) : (
+                userRegistrations.slice(0, 4).map(reg => (
+                  <button
+                    key={reg._id}
+                    onClick={() => navigate(`/hackathons/${reg.hackathon?._id || reg.hackathon}`)}
+                    style={{
+                      padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#fff', fontSize: '0.74rem', fontWeight: 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                    }}
+                  >
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      🏆 {reg.hackathon?.title || 'Hackathon Project'}
+                    </span>
+                    <ChevronRight size={12} color="rgba(255,255,255,0.4)" />
+                  </button>
+                ))
+              )
+            ) : (
+              userTeams.length === 0 ? (
+                <div style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '8px 0' }}>
+                  No team projects yet
+                </div>
+              ) : (
+                userTeams.slice(0, 4).map(team => (
+                  <button
+                    key={team._id}
+                    onClick={() => navigate(`/workspace/${team._id}`)}
+                    style={{
+                      padding: '7px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#fff', fontSize: '0.74rem', fontWeight: 600, textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                    }}
+                  >
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      ⚡ {team.name}
+                    </span>
+                    <ChevronRight size={12} color="rgba(255,255,255,0.4)" />
+                  </button>
+                ))
+              )
+            )}
+          </div>
+
           <Link
-            to="/my-teams"
+            to="/hackathons"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '8px 12px', background: '#ffffff', border: 'none',
-              borderRadius: 10, color: '#060709', fontSize: '0.75rem', fontWeight: 700, textDecoration: 'none', boxShadow: '0 4px 14px rgba(255,255,255,0.3)'
+              padding: '9px 12px', background: '#ffffff', border: 'none',
+              borderRadius: 10, color: '#060709', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'none',
+              boxShadow: '0 4px 16px rgba(255,255,255,0.3)'
             }}
           >
-            <Plus size={13} /> Create New
+            <Plus size={14} /> Create New
           </Link>
         </div>
       )}
