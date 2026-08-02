@@ -35,6 +35,32 @@ const createDummyHackathons = async () => {
       });
     }
 
+    // Find or create test admin
+    let admin = await User.findOne({ email: 'admin@hackforge.dev' });
+    if (!admin) {
+      admin = await User.create({
+        name: 'Admin User',
+        email: 'admin@hackforge.dev',
+        password: 'Password@123',
+        role: 'admin',
+        authProvider: 'local'
+      });
+    }
+
+    // Find or create test participant
+    let participant = await User.findOne({ email: 'participant@hackforge.dev' });
+    if (!participant) {
+      participant = await User.create({
+        name: 'Jordan Participant',
+        email: 'participant@hackforge.dev',
+        password: 'Password@123',
+        role: 'participant',
+        authProvider: 'local'
+      });
+    }
+
+
+
     const now = new Date();
 
     const dummyHackathons = [

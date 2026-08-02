@@ -60,6 +60,33 @@ CodeSprint eliminates the fragmented experience of running and participating in 
 
 ---
 
+## 🔑 Demo Credentials
+
+> **Try the platform instantly** — no sign-up required. Use any of the accounts below to explore every role on CodeSprint.
+
+| Role | Email | Password |
+|------|-------|----------|
+| 🛡️ **Admin** | `admin@hackforge.dev` | `Password@123` |
+| 🏢 **Organizer** | `organizer@hackforge.dev` | `Password@123` |
+| ⚖️ **Judge** | `judge@hackforge.dev` | `Password@123` |
+| 👥 **Participant** | `participant@hackforge.dev` | `Password@123` |
+
+> [!NOTE]
+> Run the seed script first to populate all demo accounts and hackathons:
+> ```bash
+> cd backend
+> node utils/seedDummyHackathons.js
+> ```
+
+> [!TIP]
+> **What each role can do:**
+> - **Admin** — Manage all users, oversee platform-wide activity
+> - **Organizer** — Create & manage hackathons, assign judges, review submissions
+> - **Judge** — Score assigned submissions, leave detailed feedback
+> - **Participant** — Discover hackathons, form teams, submit projects, use AI assistant
+
+---
+
 ## 🛠 Tech Stack
 
 ### Backend
