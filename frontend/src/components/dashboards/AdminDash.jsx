@@ -697,8 +697,14 @@ export default function AdminDash() {
         fetchAllHackathons(),
       ]);
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data?.data || null);
-      if (usersRes.status === 'fulfilled')  setUsers(usersRes.value.data?.data || []);
-      if (hackRes.status === 'fulfilled')   setHackathons(hackRes.value.data?.data || []);
+      if (usersRes.status === 'fulfilled') {
+        const u = usersRes.value.data?.data;
+        setUsers(Array.isArray(u) ? u : []);
+      }
+      if (hackRes.status === 'fulfilled') {
+        const h = hackRes.value.data?.data;
+        setHackathons(Array.isArray(h) ? h : []);
+      }
     } catch {
       toast.error('Failed to load admin data');
     } finally {
