@@ -30,6 +30,8 @@ const RepoTreePage = lazy(() => import('./pages/RepoTreePage'));
 const KanbanPage = lazy(() => import('./pages/KanbanPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+// Full admin panel page — only accessible to users with role='admin'
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 // Displays full-screen loading spinner while app initializes
 const PageLoader = () => (
@@ -104,6 +106,8 @@ function AppRoutes() {
         <Route path="/judge/hackathon/:hackathonId/submissions" element={<ProtectedRoute><JudgeSubmissionsPage /></ProtectedRoute>} />
         <Route path="/judge/submissions/:submissionId/review" element={<ProtectedRoute><ReviewFormPage /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
+        {/* Full admin control panel — role-guarded inside AdminPage itself */}
+        <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

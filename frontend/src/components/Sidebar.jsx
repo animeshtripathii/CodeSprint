@@ -71,7 +71,8 @@ export default function Sidebar() {
     }
   }, [role]);
 
-  // Main navigation links categorized by user role
+  // Main navigation links categorized by user role.
+  // Admin role gets a dedicated set of platform-management links.
   const navItems = {
     organizer: [
       { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
@@ -97,6 +98,14 @@ export default function Sidebar() {
       { to: '/hackathons', label: 'Explore Hackathons', icon: <Trophy size={16} /> },
       { to: '/repositories', label: 'Repositories', icon: <FolderGit2 size={16} /> },
       { to: '/kanban', label: 'Kanban Board', icon: <Kanban size={16} /> },
+    ],
+    // Admin users get a dedicated control-panel navigation set
+    admin: [
+      { to: '/dashboard', label: 'Admin Overview', icon: <LayoutGrid size={16} /> },
+      { to: '/admin', label: 'Admin Panel', icon: <Shield size={16} /> },
+      { to: '/admin/users', label: 'User Management', icon: <Users size={16} /> },
+      { to: '/hackathons', label: 'All Hackathons', icon: <Trophy size={16} /> },
+      { to: '/profile', label: 'My Profile', icon: <User size={16} /> },
     ],
   }[role] || [
     { to: '/dashboard', label: 'Dashboard', icon: <LayoutGrid size={16} /> },
@@ -412,6 +421,26 @@ export default function Sidebar() {
             }}
           >
             <Plus size={14} /> Create New
+          </Link>
+        </div>
+      )}
+
+      {/* ── Admin Panel Quick-access Button (admin role only) ── */}
+      {role === 'admin' && !isCollapsed && (
+        <div style={{ marginBottom: 12 }}>
+          <Link
+            to="/admin"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '9px 12px', background: 'linear-gradient(135deg, rgba(167,139,250,0.2), rgba(124,58,237,0.2))',
+              border: '1px solid rgba(167,139,250,0.4)',
+              borderRadius: 10, color: '#a78bfa', fontSize: '0.78rem', fontWeight: 800, textDecoration: 'none',
+              boxShadow: '0 4px 16px rgba(167,139,250,0.2)', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(167,139,250,0.3), rgba(124,58,237,0.3))'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(167,139,250,0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(167,139,250,0.2), rgba(124,58,237,0.2))'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(167,139,250,0.2)'; }}
+          >
+            <Shield size={14} /> Admin Control Panel
           </Link>
         </div>
       )}
