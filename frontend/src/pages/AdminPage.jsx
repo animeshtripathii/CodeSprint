@@ -1,46 +1,20 @@
-// AdminPage.jsx
-// ─────────────────────────────────────────────────────────────────────────────
-// Standalone Admin Panel page — accessible at /admin and /admin/:section.
-//
-// This page is a full-screen replacement layout that includes:
-//   - A dedicated admin sidebar with system navigation links
-//   - The main AdminDash content panel on the right
-//   - Role-guard: non-admin users are redirected to /dashboard
-//
-// Route registration: App.jsx → /admin/* → ProtectedRoute → AdminPage
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AdminDash from '../components/dashboards/AdminDash';
-import {
-  Shield,
-  LayoutGrid,
-  Users,
-  Trophy,
-  Activity,
-  Settings,
-  LogOut,
-  Zap,
-  ChevronRight,
-  Bell,
-} from 'lucide-react';
+import { Shield, LayoutGrid, Users, Trophy, Activity, Settings, LogOut, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// ── Admin Sidebar Sub-component ──────────────────────────────────────────────
-// Dedicated left-side navigation bar shown only on the admin panel pages.
-// Renders a fixed set of admin-specific links and a logout button at the bottom.
+// Sidebar shown only on admin pages
 function AdminSidebar({ user, onLogout }) {
   const navigate = useNavigate();
 
-  // Navigation item definitions for the admin sidebar
   const navItems = [
-    { label: 'Overview',    icon: <LayoutGrid size={16} />, section: 'overview'   },
-    { label: 'Users',       icon: <Users size={16} />,      section: 'users'      },
-    { label: 'Hackathons',  icon: <Trophy size={16} />,     section: 'hackathons' },
-    { label: 'Audit Log',   icon: <Activity size={16} />,   section: 'audit'      },
-    { label: 'Settings',    icon: <Settings size={16} />,   section: 'settings'   },
+    { label: 'Overview',   icon: <LayoutGrid size={16} />, section: 'overview'   },
+    { label: 'Users',      icon: <Users size={16} />,      section: 'users'      },
+    { label: 'Hackathons', icon: <Trophy size={16} />,     section: 'hackathons' },
+    { label: 'Audit Log',  icon: <Activity size={16} />,   section: 'audit'      },
+    { label: 'Settings',   icon: <Settings size={16} />,   section: 'settings'   },
   ];
 
   return (
@@ -53,10 +27,8 @@ function AdminSidebar({ user, onLogout }) {
       height: '100vh', position: 'sticky', top: 0,
       padding: '20px 14px', boxSizing: 'border-box',
     }}>
-
-      {/* ── Brand + Role Header ── */}
+      {/* Brand header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '0 4px' }}>
-        {/* Brand logo badge */}
         <div style={{
           width: 32, height: 32, borderRadius: 10,
           background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
@@ -73,14 +45,13 @@ function AdminSidebar({ user, onLogout }) {
         </div>
       </div>
 
-      {/* ── Admin Profile Card ── */}
+      {/* Admin user card */}
       <div style={{
         background: 'rgba(167,139,250,0.06)',
         border: '1px solid rgba(167,139,250,0.2)',
         borderRadius: 14, padding: '10px 12px', marginBottom: 20,
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
-        {/* User avatar initial */}
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
           background: 'rgba(167,139,250,0.2)', border: '1px solid rgba(167,139,250,0.4)',
@@ -97,9 +68,8 @@ function AdminSidebar({ user, onLogout }) {
         </div>
       </div>
 
-      {/* ── Navigation Items ── */}
+      {/* Nav links */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
-        {/* Section label */}
         <div style={{
           fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em',
           color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase',
@@ -107,18 +77,14 @@ function AdminSidebar({ user, onLogout }) {
         }}>
           Management
         </div>
-
-        {/* Render each navigation item as a button */}
         {navItems.map(item => (
           <button
             key={item.section}
             onClick={() => {
-              // Settings is not yet implemented; show informational toast
               if (item.section === 'settings') {
                 toast('Platform settings coming soon!', { icon: '⚙️' });
                 return;
               }
-              // Navigate to the admin page which internally handles tab switching
               navigate('/admin');
             }}
             style={{
@@ -129,14 +95,8 @@ function AdminSidebar({ user, onLogout }) {
               fontSize: '0.83rem', fontWeight: 600, textAlign: 'left',
               transition: 'all 0.15s ease', width: '100%',
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(167,139,250,0.1)';
-              e.currentTarget.style.color = '#a78bfa';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
-            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(167,139,250,0.1)'; e.currentTarget.style.color = '#a78bfa'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
           >
             {item.icon}
             {item.label}
@@ -144,10 +104,8 @@ function AdminSidebar({ user, onLogout }) {
         ))}
       </div>
 
-      {/* ── Bottom Action Buttons ── */}
+      {/* Bottom actions */}
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-
-        {/* Back to App button — exits admin view to main dashboard */}
         <button
           onClick={() => navigate('/dashboard')}
           style={{
@@ -164,7 +122,6 @@ function AdminSidebar({ user, onLogout }) {
           Back to App
         </button>
 
-        {/* Sign out button */}
         <button
           onClick={onLogout}
           style={{
@@ -186,14 +143,11 @@ function AdminSidebar({ user, onLogout }) {
   );
 }
 
-// ── Main AdminPage Component ─────────────────────────────────────────────────
-// Top-level routed page for the admin control panel.
-// Enforces role-based access: only users with role='admin' may view this page.
 export default function AdminPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Role guard — redirect non-admin users immediately on mount
+  // Redirect non-admin users away from this page
   useEffect(() => {
     if (user && user.role !== 'admin') {
       toast.error('Access denied: Admin privileges required');
@@ -201,7 +155,6 @@ export default function AdminPage() {
     }
   }, [user, navigate]);
 
-  // Handles logout: clears auth state and redirects to landing page
   const handleLogout = async () => {
     try {
       await logout();
@@ -211,16 +164,11 @@ export default function AdminPage() {
     }
   };
 
-  // Prevent rendering the admin panel for non-admin users while redirect fires
   if (!user || user.role !== 'admin') return null;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#050507' }}>
-
-      {/* ── Left: Admin Sidebar Navigation ── */}
       <AdminSidebar user={user} onLogout={handleLogout} />
-
-      {/* ── Right: Main Admin Dashboard Content ── */}
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
         <AdminDash />
       </main>
