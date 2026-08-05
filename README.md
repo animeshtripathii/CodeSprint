@@ -204,7 +204,7 @@ flowchart TD
     K --> L[Issue JWT Cookie]
 
     G --> M[Clerk SSO Callback]
-    M --> N[/sso-callback route]
+    M --> N["/sso-callback route"]
     N --> O{Existing User?}
     O -->|No| P[Auto-create User Record]
     O -->|Yes| Q[Load Profile]
